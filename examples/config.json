@@ -1,0 +1,24 @@
+{
+  "data.train_part": 0.995,
+  "data.shuffle": 1,
+
+  "model.skip_train": 0,
+  "model.batch_size": 16,
+  "model.epochs": 300,
+  "model.input_noise": 0,
+
+  "model.optimizer.name": "adam",
+  "model.optimizer.learning_rate": 1e-3,
+  "model.loss": "cumsum-mse",
+  "model.earlystop.enabled": true,
+  "model.stateful": 0,
+
+  "callbacks.plot": true,
+  "callbacks.plot.n": 10,
+
+  "predict.data_set": "test",
+  "predict.model": "../last/model-cross",
+  "predict.plot": true,
+
+  "use_gpu": 1
+}
