@@ -1,12 +1,41 @@
 import sys
-import tty
 import time
-import termios
+try:
+    import termios
+    import tty
+    no_keyboard = False
+except:
+    no_keyboard = True
+    print '!!! Warning: keyboard callbacks is not supported!'
+
 import threading
 
-global started, keyboard_events
+global started, keyboard_events, exiter
 keyboard_events = {}
 started = False
+
+
+class Exiter():
+    def __init__(self):
+        self.stop = False
+        self.forward()
+        self.backward()
+
+    def __del__(self):
+        self.stop = True
+        self.backward()
+
+    def forward(self):
+        if no_keyboard: return
+        self.fd = sys.stdin.fileno()
+        self.old = termios.tcgetattr(self.fd)
+
+    def backward(self):
+        if no_keyboard: return
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old)
+
+
+exiter = Exiter()
 
 
 def reset():
@@ -18,18 +47,18 @@ def listen_key(key, action):
 
 
 def start():
-    global started
-    if started:
-        return
-    started = True
+    global started, stop
 
-    def read_inp():
-        global keyboard_events
-        while True:
-            fd = sys.stdin.fileno()
-            old = termios.tcgetattr(fd)
+    if started or no_keyboard:
+        return
+
+    def run():
+        global keyboard_events, exiter
+
+        while not exiter.stop:
             try:
-                tty.setcbreak(fd)
+                exiter.forward()
+                tty.setcbreak(exiter.fd)
                 answer = sys.stdin.read(1)
                 k = keyboard_events
                 if answer in k:
@@ -37,12 +66,13 @@ def start():
                     if continue_ is not None and continue_ == False:
                         keyboard_events = {key: value for key, value in keyboard_events.items() if key != answer}
             finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old)
+                exiter.backward()
 
             time.sleep(0.01)
 
-    t = threading.Thread(target=read_inp)
-
+    started = True
+    t = threading.Thread(target=run)
+    t.setDaemon(True)
     t.start()
 
 

@@ -10,4 +10,5 @@ tfmicro/threadgen.py
 tfmicro.egg-info/PKG-INFO
 tfmicro.egg-info/SOURCES.txt
 tfmicro.egg-info/dependency_links.txt
+tfmicro.egg-info/requires.txt
 tfmicro.egg-info/top_level.txt

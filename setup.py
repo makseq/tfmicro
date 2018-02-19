@@ -3,7 +3,7 @@ __author__ = 'max tkachenko'
 from distutils.core import setup
 from setuptools import find_packages
 
-required = []
+required = open('requirements.txt').read().split('\n')
 
 setup(name='tfmicro',
       version='0.1',

@@ -1,5 +1,7 @@
 import sys
+
 import tensorflow as tf
+
 import keyboard
 
 stop_training = False
