@@ -28,11 +28,17 @@ class Exiter():
     def forward(self):
         if no_keyboard: return
         self.fd = sys.stdin.fileno()
-        self.old = termios.tcgetattr(self.fd)
+        try:
+            self.old = termios.tcgetattr(self.fd)
+        except Exception as e:
+            pass
 
     def backward(self):
         if no_keyboard: return
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old)
+        try:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old)
+        except Exception as e:
+            pass
 
 
 exiter = Exiter()

@@ -30,7 +30,7 @@ def print_web(commit):
     try: comment = str(commit.desc['comment']).replace('{','').replace('}','').replace('"','').replace('[','').replace(']','')
     except: comment = commit.desc['comment']
 
-    h = ['name', 'train', 'valid', 'time', 'comment', 'loss', 'cross']  # + ['img'+str(i) for i in xrange(n_images)]
+    h = ['name', 'train_loss', 'val_loss', 'time', 'comment', 'train_g', 'val_g']  # + ['img'+str(i) for i in xrange(n_images)]
 
     b = [commit.name,
         '%0.3f' % (commit.desc['score']),

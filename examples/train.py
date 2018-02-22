@@ -72,12 +72,12 @@ def run(commit):
         print 'Training'
         commit.MakeLink()
         callbacks_list = build_callbacks(c, model_dir)
-        commit.model.fit_data(data, callbacks=callbacks_list, epochs=c['model.epochs'], use_gpu=c['use_gpu'],
+        commit.model.fit_data(data, max_queue_size=10, callbacks=callbacks_list, epochs=c['model.epochs'], use_gpu=c['use_gpu'],
                               tensorboard_subdir=commit.name)
         commit.model.save(model_dir + '-last')
 
     # TEST
-    predict.test1(commit, data)
+    #predict.test1(commit, data)
     return 0
 
 
@@ -97,7 +97,7 @@ def score(commit):
 # Print
 @testarium.testarium.set_print
 def print_console(commit):
-    return ['name', 'loss', 'cross', 'time', 'comment', 'loss_plot', 'cross_plot'], \
+    return ['name', 'train_loss', 'val_loss', 'time', 'comment', 'train_g', 'val_g'],  \
            [commit.name,
             '%0.3f' % (commit.desc['score']),
             '%0.3f' % (commit.desc['cross']),
