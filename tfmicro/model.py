@@ -119,8 +119,8 @@ class Model(object):
         self.x, self.y = self.train_generator.get_values()
 
         # train step
-        params = [self.cost, self.summary, self.optimizer, self.out] + self.update_ops
-        cost, summary, _, self.train_prediction = self.sess.run(params, feed_dict={
+        params = [self.cost, self.cost_summary, self.optimizer, self.out] + self.update_ops
+        cost, cost_summary, _, self.train_prediction = self.sess.run(params, feed_dict={
             self.X: self.x,
             self.Y: self.y,
 
@@ -130,7 +130,7 @@ class Model(object):
             self.learning_rate_tf: self.learning_rate
         })
 
-        self.train_writer.add_summary(summary, global_step=self.epoch)
+        self.train_writer.add_summary(cost_summary, global_step=self.epoch*self.data.steps_per_epoch + self.step)
         self.train_costs += [cost]
 
     def validation_step(self):
@@ -138,11 +138,12 @@ class Model(object):
         self.test_x, self.test_y = self.valid_generator.get_values()
 
         # validate
-        params = [self.cost_summary, self.cost, self.out] + self.update_ops
-        cost_summary, cost, self.test_prediction = self.sess.run(params, feed_dict={
+        params = [self.cost, self.cost_summary, self.out] + self.update_ops
+        cost, cost_summary, self.test_prediction = self.sess.run(params, feed_dict={
                                                     self.X: self.test_x, self.Y: self.test_y})
+
+        self.valid_writer.add_summary(cost_summary, global_step=self.epoch*self.data.validation_steps + self.valid_step)
         self.test_costs += [cost]
-        self.test_writer.add_summary(cost_summary, global_step=self.epoch)
 
     def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, use_gpu=True,
                  tensorboard_subdir=''):
@@ -158,19 +159,18 @@ class Model(object):
         print ' Compiling model'
         self._train_model(data)
 
-        # summary & saver
-        self.cost_summary = tf.summary.scalar("cost", self.cost)
-        self.summary = tf.summary.merge_all()
-        self.saver = tf.train.Saver()
-
         # session init # intra_op_parallelism_threads=8, inter_op_parallelism_threads=8
         self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': use_gpu}))
         self.sess.run(tf.global_variables_initializer())
 
-        # log writer
+        # log writer & model saver
         self.train_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/train')
-        self.test_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/test')
+        self.valid_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/valid')
         self.train_writer.add_graph(self.sess.graph)
+        self.saver = tf.train.Saver()
+
+        # summary
+        self.cost_summary = tf.summary.scalar("cost", self.cost)
 
         self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': []}
         self.epoch, self.step, train_cost, test_cost, first = 1, 0, 0, 0, True
@@ -203,17 +203,17 @@ class Model(object):
             if self.step >= steps_per_epoch:
 
                 ' validation pass '
-                valid_step = 0
+                self.valid_step = 0
                 while True:  # validation cycle
                     [call.on_validation_step_begin() for call in self.callbacks]
                     self.validation_step()
                     [call.on_validation_step_end() for call in self.callbacks]
                     self.progress(self.step)
-                    valid_step += 1
-                    if valid_step >= validation_steps:
+                    self.valid_step += 1
+                    if self.valid_step >= validation_steps:
                         break
 
-                # print summary info
+                # print info to history
                 self.history['loss'] += [np.mean(self.train_costs)]
                 self.history['loss_std'] += [np.std(self.train_costs)]
                 self.history['val_loss'] += [np.mean(self.test_costs)]

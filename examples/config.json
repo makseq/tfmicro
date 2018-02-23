@@ -45,7 +45,7 @@
   "callbacks.plot.n": 10,
 
   "predict.data_set": "test",
-  "predict.model": "../last/model-cross",
+  "predict.model": "../last/model-valid",
   "predict.plot": true,
 
   "use_gpu": 1

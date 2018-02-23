@@ -14,16 +14,20 @@ if os.path.exists('mpl.agg'):
 else:
     mpl_agg = False
 
-import numpy as np, random
+import numpy as np
+import random
 np.random.seed(42)
-import tensorflow as tf
 random.seed(12345)
+import tensorflow as tf
 tf.set_random_seed(1234)
 
 # Local imports
 import testarium
-import my_model, predict
 from tfmicro import callbacks, callback_plot
+
+import my_model
+import web
+import predict
 from data import Data
 
 
@@ -32,8 +36,7 @@ def build_callbacks(c, model_dir):
     cbs = []
 
     # Callback: Save the best model
-    cbs += [
-        callbacks.ModelCheckpoint(model_dir + '-cross', monitor='val_loss', save_best_only=True, start_from_epoch=10, max_models_to_keep=3)]
+    cbs += [callbacks.ModelCheckpoint(model_dir + '-valid', monitor='val_loss', save_best_only=True, start_from_epoch=10, max_models_to_keep=3)]
     cbs += [callbacks.ModelCheckpoint(model_dir + '-train', monitor='loss', save_best_only=True, start_from_epoch=5)]
     cbs += [callbacks.KeyboardLearningRate()]
     cbs += [callbacks.KeyboardStop()]
@@ -84,28 +87,11 @@ def run(commit):
 # Scoring
 @testarium.experiment.set_score
 def score(commit):
-
     h = commit.model.history
     loss, val_loss = h['loss'][-1], h['val_loss'][-1]
     commit.MakeGraph('plot_loss.json', h['loss'], 'epoch', 'loss')  # plots for testarium
-    commit.MakeGraph('plot_cross.json', h['val_loss'], 'epoch', 'cross validation loss')
-    #except:
-    #    h, loss, val_loss = 'None', 100, 100
-    return {'score': loss, 'cross': val_loss, 'history': h}
-
-
-# Print
-@testarium.testarium.set_print
-def print_console(commit):
-    return ['name', 'train_loss', 'val_loss', 'time', 'comment', 'train_g', 'val_g'],  \
-           [commit.name,
-            '%0.3f' % (commit.desc['score']),
-            '%0.3f' % (commit.desc['cross']),
-            '%0.0f' % (commit.desc['duration']),
-            str(commit.desc['comment']).replace('{','').replace('}','').replace('"','').replace('[','').replace(']',''),
-            'graph://storage/' + commit.dir + '/plot_loss.json',
-            'graph://storage/' + commit.dir + '/plot_cross.json',
-            ]
+    commit.MakeGraph('plot_valid.json', h['val_loss'], 'epoch', 'validation loss')
+    return {'score': loss, 'valid': val_loss, 'history': h}
 
 
 if __name__ == '__main__':
