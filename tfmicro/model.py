@@ -172,7 +172,7 @@ class Model(object):
         # summary
         self.cost_summary = tf.summary.scalar("cost", self.cost)
 
-        self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': []}
+        self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': [], 'lr': []}
         self.epoch, self.step, train_cost, test_cost, first = 1, 0, 0, 0, True
         self.epoch_time_start = time.time()
         self.train_costs, self.test_costs = [], []
@@ -218,6 +218,7 @@ class Model(object):
                 self.history['loss_std'] += [np.std(self.train_costs)]
                 self.history['val_loss'] += [np.mean(self.test_costs)]
                 self.history['val_loss_std'] += [np.std(self.test_costs)]
+                self.history['lr'] += [self.learning_rate]
                 self.history['time'] += [time.time() - self.epoch_time_start]
                 self.train_costs, self.test_costs = [], []
 

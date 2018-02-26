@@ -1,7 +1,6 @@
 import sys
-
+import numpy as np
 import tensorflow as tf
-
 import keyboard
 
 stop_training = False
@@ -112,27 +111,80 @@ class KeyboardLearningRate(Callback):
         super(Callback, self).__init__()
 
 
-'''# Callback: Early stopping by crossing loss vs val_loss (cross validation)
-class EarlyStoppingByCrossing(Callback):
-    def __init__(self, epsilon):
-        super(Callback, self).__init__()
-        self.eps = epsilon
+# Learning rate
+class ReducingLearningRate(Callback):
+    def __init__(self, monitor='val_loss', factor=0.5, patience=4,
+                 verbose=0, mode='auto', epsilon=1e-10, cooldown=1, min_lr=0):
 
-    def on_epoch_end(self, epoch, logs={}):
-        loss = logs.get('loss')
-        valid = logs.get('val_loss')
-        if loss < valid + self.eps:
-            print("Epoch %05d: early stopping loss < cross_validation" % epoch)
-            self.model.stop_training = True
-
-
-# Callback: Reset states
-class ResetStates(Callback):
-    def __init__(self):
         super(Callback, self).__init__()
 
-    def on_epoch_begin(self, epoch, logs=None):
-        if c['model.stateful']:
-            self.model.reset_states()
-reset_states = ResetStates()'''
+        self.monitor = monitor
+        if factor >= 1.0:
+            raise ValueError('Learning rate does not support a factor >= 1.0.')
+
+        self.factor = factor
+        self.min_lr = min_lr
+        self.epsilon = epsilon
+        self.patience = patience
+        self.verbose = verbose
+        self.cooldown = cooldown
+        self.cooldown_counter = 0  # cooldown counter
+        self.wait = 0
+        self.best = 0
+        self.mode = mode
+        self.monitor_op = None
+        self._reset()
+
+    def _reset(self):
+        """Resets wait counter and cooldown counter.
+        """
+        if self.mode not in ['min', 'max']:
+            print 'Learning Rate mode %s is unknown, use min or max.' % self.mode
+            raise ValueError('Incorrect mode in ReducingLearningRate')
+
+        if self.mode == 'min':
+            self.monitor_op = lambda a, b: np.less(a, b - self.epsilon)
+            self.best = np.Inf
+        elif self.mode == 'max':
+            self.monitor_op = lambda a, b: np.greater(a, b + self.epsilon)
+            self.best = -np.Inf
+        self.cooldown_counter = 0
+        self.wait = 0
+
+    def on_start(self):
+        self._reset()
+
+    def on_epoch_end(self):
+        history = self.model.history
+
+        # get last monitor value from history
+        if self.monitor not in history:
+            raise KeyError('No key in model.history: %s' % self.monitor)
+        else:
+            current = history[self.monitor][-1]
+
+        # lr reducing
+        if self.in_cooldown():
+            self.cooldown_counter -= 1
+            self.wait = 0
+
+        if self.monitor_op(current, self.best):
+            self.best = current
+            self.wait = 0
+
+        elif not self.in_cooldown():
+            if self.wait >= self.patience:
+                old_lr = float(self.model.learning_rate)
+                if old_lr > self.min_lr:
+                    new_lr = old_lr * self.factor
+                    new_lr = max(new_lr, self.min_lr)
+                    self.model.learning_rate = new_lr
+                    print('\n  -> Callback: Learning rate = %0.2e' % new_lr)
+                    self.cooldown_counter = self.cooldown
+                    self.wait = 0
+            self.wait += 1
+
+    def in_cooldown(self):
+        return self.cooldown_counter > 0
+
 

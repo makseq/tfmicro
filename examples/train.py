@@ -40,6 +40,7 @@ def build_callbacks(c, model_dir):
     cbs += [callbacks.ModelCheckpoint(model_dir + '-train', monitor='loss', save_best_only=True, start_from_epoch=5)]
     cbs += [callbacks.KeyboardLearningRate()]
     cbs += [callbacks.KeyboardStop()]
+    cbs += [callbacks.ReducingLearningRate()]
 
     if c['callbacks.plot']:
         cbs += [callback_plot.PlotCallback()]
