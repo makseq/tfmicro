@@ -28,11 +28,11 @@ class AttentionWithContext(object):
         self.debug('ait shape', ait.get_shape())
 
         a = tf.exp(ait)  # => [b, time, 1]
-        a /= tf.reduce_sum(a, axis=1, keep_dims=True) + self.epsilon  # => [b, time, 1]
+        a /= tf.reduce_sum(a, axis=1, keepdims=True) + self.epsilon  # => [b, time, 1]
 
         weighted_input = x * a  # [b, time, dim] x [b, time, 1] => [b, time, dim]
         self.debug('wighted input shape', weighted_input.get_shape())
-        return tf.reduce_sum(weighted_input, axis=1)  # => [b, dim]'''
+        return tf.reduce_sum(weighted_input, axis=1)  # => [b, dim]
 
     def debug(self, *args):
         if self.debug:
