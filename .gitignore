@@ -1,3 +1,4 @@
-**/*.pyc
 *.pyc
-tfmicro.egg-info
+*.swp
+*.swo
+tfmicro.egg-info/
