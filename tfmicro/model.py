@@ -39,6 +39,8 @@ class Model(object):
         progress_width = 30
         step = self.data.steps_per_epoch if step == -1 else step
         dur = time.time() - self.epoch_time_start
+        self.need_update = time.time() - self.prev_time > 0.5  # more 5 sec
+        self.prev_time = time.time()
 
         # costs
         train_cost_mean = np.mean(self.train_costs)
@@ -50,7 +52,9 @@ class Model(object):
             return int(s / float(self.data.steps_per_epoch) * progress_width + 0.5)
 
         p = eval_progress(step)
-        if (p != eval_progress(step - 1) and step >= 0) or step == self.data.steps_per_epoch:
+        self.need_update = not (not self.need_update and not (p != eval_progress(step - 1) and step >= 0))
+        self.need_update = self.need_update or step == self.data.steps_per_epoch
+        if self.need_update:
             msg1 = '  [' + '=' * p + '-' * (progress_width - p) + '] %i/%i' % (step, self.data.steps_per_epoch)
             msgt = ' %0.0f/%0.0fs' % (dur, (dur/float(step)) * self.data.steps_per_epoch) if step > 0 else ''
             msg2 = ' > train: %0.4f [%0.2f]' % (train_cost_mean, train_cost_std)
@@ -69,6 +73,7 @@ class Model(object):
         self.c = c
         self.stop_training = False
         self.predictor = None
+        self.prev_time = time.time()
 
     def _train_basics(self):
         c = self.c
@@ -274,7 +279,7 @@ class Model(object):
             print 'Graph loaded', graph_path
         except:
             model.saver = tf.train.Saver()
-            print 'No graph loaded!'
+            print 'No graph loaded!', graph_path
 
         model.saver.restore(model.sess, path + model_name)
         print 'Variables loaded', path + model_name
