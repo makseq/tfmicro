@@ -6,31 +6,39 @@ import tensorflow as tf
 class AttentionWithContext(object):
 
     def __init__(self, shape, units, name='attention_context', verbose=False):
-        with tf.name_scope(name):
+        with tf.variable_scope(name):
             init = tf.glorot_uniform_initializer()
             self.shape = shape
             self.name = name
             self.epsilon = 1e-10
             self.verbose = verbose
             self.units = units
-
-            self.W = tf.Variable(initial_value=init([shape[-1], units]), dtype=tf.float32, name='W')
-            self.b = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
-            self.u = tf.Variable(initial_value=init([units, 1]), dtype=tf.float32, name='U')
+            dim = shape[-1]
+            #self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
+            #self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
+            self.U = tf.Variable(initial_value=init([units, dim]), dtype=tf.float32, name='U')
+            self.Ub = tf.Variable(initial_value=init([dim]), dtype=tf.float32, name='b')
+            self.rnn_cell = tf.nn.rnn_cell.GRUCell(units)
 
     def call(self, x):
-        uit = tf.einsum('ijk,kl->ijl', x, self.W)  # [b, time, dim] x [dim, dim] => [b, time, dim]
-        uit += self.b  # => [b, time, dim]
-        self.debug('uit shape', uit.get_shape())
+        uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32)  # => [b*num_files, t, units[0]]
 
-        uit = tf.tanh(uit)  # => => [b, time, dim]
-        ait = tf.einsum('ijk,kl->ijl', uit, self.u)  # [b, time, dim] x [dim, 1] => [b, time, 1]
+        # W
+        # uit = tf.einsum('ijk,kl->ijl', hidden, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]
+        # uit += self.Wb  # => [b, time, att]
+        # uit = tf.tanh(uit)  # => => [b, time, dim]
+        # self.debug('uit shape', uit.get_shape())
+
+        ait = tf.einsum('ijk,kl->ijl', uit, self.U)  # [b, time, att] x [att, dim] => [b, time, dim]
+        ait += self.Ub  # => [b, time, att]
         self.debug('ait shape', ait.get_shape())
 
-        a = tf.exp(ait)  # => [b, time, 1]
-        a /= tf.reduce_sum(a, axis=1, keepdims=True) + self.epsilon  # => [b, time, 1]
+        a = tf.exp(ait)  # => [b, time, dim]
+        a /= tf.reduce_sum(a, axis=1, keepdims=True) + self.epsilon  # => [b, time, dim]
+        self.a = a
 
-        weighted_input = x * a  # [b, time, dim] x [b, time, 1] => [b, time, dim]
+        weighted_input = x * a  # [b, time, dim] x [b, time, dim] => [b, time, dim]
+        self.weighted_input = weighted_input
         self.debug('wighted input shape', weighted_input.get_shape())
         return tf.reduce_sum(weighted_input, axis=1)  # => [b, dim]
 
