@@ -150,14 +150,14 @@ class Model(object):
         self.valid_writer.add_summary(cost_summary, global_step=self.epoch*self.data.validation_steps + self.valid_step)
         self.test_costs += [cost]
 
-    def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, use_gpu=True,
+    def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, valid_thread_num=4, use_gpu=True,
                  tensorboard_subdir=''):
         c = self.c
         self.data = data
         self.epochs = epochs
         self.callbacks = [] if callbacks is None else callbacks
         self.train_generator = threadgen.ThreadedGenerator(data.generator('train'), max_queue_size, thread_num).start()
-        self.valid_generator = threadgen.ThreadedGenerator(data.generator('valid'), max_queue_size, thread_num).start()
+        self.valid_generator = threadgen.ThreadedGenerator(data.generator('valid'), max_queue_size, valid_thread_num).start()
         steps_per_epoch, validation_steps = data.steps_per_epoch, data.validation_steps
 
         # prepare train model

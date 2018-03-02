@@ -49,26 +49,39 @@ class ThreadedGenerator(object):
     def start(self):
         self.stop_threads = False
 
-        self.threads = [threading.Thread(target=self.task) for _ in range(self.thread_num)]
-        [t.setDaemon(True) for t in self.threads]  # correct exit if main thread is closed
-        [t.start() for t in self.threads]
+        if self.thread_num > 0:
+            self.threads = [threading.Thread(target=self.task) for _ in range(self.thread_num)]
+            [t.setDaemon(True) for t in self.threads]  # correct exit if main thread is closed
+            [t.start() for t in self.threads]
+
         return self
 
     def stop(self):
         self.stop_threads = True
-        [t.join() for t in self.threads]
+
+        if self.thread_num > 0:
+            [t.join() for t in self.threads]
 
     def get_values(self):
-        if self.debug:
-            print 'get', self.last_out
 
-        # wait for last_out
-        while self.last_out not in self.q:
-            time.sleep(0.001)
+        # threaded version
+        if self.thread_num > 0:
+            if self.debug:
+                print 'get', self.last_out
 
-        result = self.q.pop(self.last_out)  # pop
-        self.last_out += 1
-        return result
+            # wait for last_out
+            while self.last_out not in self.q:
+                time.sleep(0.001)
+
+            result = self.q.pop(self.last_out)  # pop
+            self.last_out += 1
+            return result
+
+        # no threads
+        else:
+            for i, value in self.generator:
+                return value
+
 
     def task(self):
         for i, values in self.generator:
