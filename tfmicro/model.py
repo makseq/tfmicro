@@ -39,8 +39,7 @@ class Model(object):
         progress_width = 30
         step = self.data.steps_per_epoch if step == -1 else step
         dur = time.time() - self.epoch_time_start
-        self.need_update = time.time() - self.prev_time > 0.5  # more 5 sec
-        self.prev_time = time.time()
+        self.need_update = (time.time() - self.prev_time) > 0.5  # more 0.5 sec
 
         # costs
         train_cost_mean = np.mean(self.train_costs)
@@ -52,9 +51,11 @@ class Model(object):
             return int(s / float(self.data.steps_per_epoch) * progress_width + 0.5)
 
         p = eval_progress(step)
-        self.need_update = not (not self.need_update and not (p != eval_progress(step - 1) and step >= 0))
+        self.need_update = self.need_update or (p != eval_progress(step - 1) and step >= 0)
         self.need_update = self.need_update or step == self.data.steps_per_epoch
         if self.need_update:
+            self.prev_time = time.time()
+
             msg1 = '  [' + '=' * p + '-' * (progress_width - p) + '] %i/%i' % (step, self.data.steps_per_epoch)
             msgt = ' %0.0f/%0.0fs' % (dur, (dur/float(step)) * self.data.steps_per_epoch) if step > 0 else ''
             msg2 = ' > train: %0.4f [%0.2f]' % (train_cost_mean, train_cost_std)
@@ -67,7 +68,8 @@ class Model(object):
             else:
                 # sys.stdout.write('\033[F\r' + msg1 + msgt + '\n\033[K' + msg2 + msg3)
                 sys.stdout.write('\033[K\r' + msg1 + msgt + msg2 + msg3 + msg4)
-                sys.stdout.flush()
+            sys.stdout.flush()
+
 
     def __init__(self, c):
         self.c = c
@@ -153,7 +155,7 @@ class Model(object):
     def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, valid_thread_num=4, use_gpu=True,
                  tensorboard_subdir=''):
         c = self.c
-        self.data = data
+        self.set_data(data)
         self.epochs = epochs
         self.callbacks = [] if callbacks is None else callbacks
         self.train_generator = threadgen.ThreadedGenerator(data.generator('train'), max_queue_size, thread_num).start()
@@ -250,6 +252,9 @@ class Model(object):
     def predict(self, x):
         self._predict_model()
         return self.predictor.predict(x)
+
+    def set_data(self, data):
+        self.data = data
 
     def save(self, dir_path, saver=None):
         saver = self.saver if saver is None else saver
