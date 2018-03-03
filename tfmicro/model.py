@@ -200,6 +200,7 @@ class Model(object):
             [call.on_step_begin() for call in self.callbacks]
 
             self.train_step()
+            self.train_writer.flush()  # write summary to disk right now
 
             ' step end '
             [call.on_step_end() for call in self.callbacks]
@@ -214,6 +215,7 @@ class Model(object):
                 while True:  # validation cycle
                     [call.on_validation_step_begin() for call in self.callbacks]
                     self.validation_step()
+                    self.valid_writer.flush()  # write summary to disk right now
                     [call.on_validation_step_end() for call in self.callbacks]
                     self.progress(self.step)
                     self.valid_step += 1
