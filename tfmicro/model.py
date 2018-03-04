@@ -78,6 +78,8 @@ class Model(object):
         self.stop_training_now = False
         self.predictor = None
         self.prev_time = time.time()
+        self.history = None
+        self._reset_history()
 
     def _train_basics(self):
         c = self.c
@@ -154,6 +156,9 @@ class Model(object):
         self.valid_writer.add_summary(cost_summary, global_step=self.epoch*self.data.validation_steps + self.valid_step)
         self.test_costs += [cost]
 
+    def _reset_history(self):
+        self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': [], 'lr': []}
+
     def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, valid_thread_num=4, use_gpu=True,
                  tensorboard_subdir=''):
         c = self.c
@@ -182,7 +187,7 @@ class Model(object):
         # summary
         self.cost_summary = tf.summary.scalar("cost", self.cost)
 
-        self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': [], 'lr': []}
+        self._reset_history()
         self.epoch, self.step, train_cost, test_cost, first = 1, 0, 0, 0, True
         self.epoch_time_start = time.time()
         self.train_costs, self.test_costs = [], []
@@ -276,6 +281,7 @@ class Model(object):
             c = json.load(open(os.path.dirname(path) + '/config.json'))
 
         model = cls(c)
+        model._reset_history()
         tf.reset_default_graph()
         model.sess = tf.Session()
 
