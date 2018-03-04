@@ -4,6 +4,7 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
+import gc
 
 import threadgen
 
@@ -74,6 +75,7 @@ class Model(object):
     def __init__(self, c):
         self.c = c
         self.stop_training = False
+        self.stop_training_now = False
         self.predictor = None
         self.prev_time = time.time()
 
@@ -164,9 +166,10 @@ class Model(object):
 
         # prepare train model
         print ' Compiling model'
+        tf.reset_default_graph()
         self._train_model(data)
 
-        # session init # intra_op_parallelism_threads=8, inter_op_parallelism_threads=8
+        # session init
         self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': use_gpu}))
         self.sess.run(tf.global_variables_initializer())
 
@@ -208,7 +211,7 @@ class Model(object):
             self.progress(self.step)  # print progress
 
             ' epoch end '
-            if self.step >= steps_per_epoch:
+            if self.step >= steps_per_epoch or self.stop_training_now:
 
                 ' validation pass '
                 self.valid_step = 0
@@ -239,12 +242,13 @@ class Model(object):
                 first = True
                 self.epoch += 1
                 self.epoch_time_start = time.time()
-                if self.stop_training:
+                if self.stop_training or self.stop_training_now:
                     break  # break main loop
 
         self.train_generator.stop()
         self.valid_generator.stop()
         [call.on_finish() for call in self.callbacks]  # self.callbacks
+        gc.collect()
         return self
 
     def _predict_model(self):
@@ -272,6 +276,7 @@ class Model(object):
             c = json.load(open(os.path.dirname(path) + '/config.json'))
 
         model = cls(c)
+        tf.reset_default_graph()
         model.sess = tf.Session()
 
         model_name = ''
@@ -284,9 +289,13 @@ class Model(object):
             graph_path = path + model_name + '.meta'
             model.saver = tf.train.import_meta_graph(graph_path)
             print 'Graph loaded', graph_path
-        except:
+        except Exception as e:
+            if not os.path.exists(graph_path):
+                print "No graph loaded! Path doesn't exist:", graph_path
+            else:
+                print 'No graph loaded! Some errors occur:', graph_path
+                print e.__repr__()
             model.saver = tf.train.Saver()
-            print 'No graph loaded!', graph_path
 
         model.saver.restore(model.sess, path + model_name)
         print 'Variables loaded', path + model_name
