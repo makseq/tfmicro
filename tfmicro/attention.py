@@ -5,7 +5,7 @@ import tensorflow as tf
 
 class AttentionWithContext(object):
 
-    def __init__(self, shape, units, name='attention_context', verbose=False):
+    def __init__(self, shape, units, keep_prob=None, name='attention_context', verbose=False):
         with tf.variable_scope(name):
             init = tf.glorot_uniform_initializer()
             self.shape = shape
@@ -13,6 +13,7 @@ class AttentionWithContext(object):
             self.epsilon = 1e-10
             self.verbose = verbose
             self.units = units
+            self.keep_prob = keep_prob
             dim = shape[-1]
             #self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
             #self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
@@ -22,6 +23,8 @@ class AttentionWithContext(object):
 
     def call(self, x):
         uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32)  # => [b*num_files, t, units[0]]
+        if self.keep_prob is not None:
+            uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
 
         # W
         # uit = tf.einsum('ijk,kl->ijl', hidden, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]

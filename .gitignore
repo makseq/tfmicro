@@ -2,3 +2,4 @@
 *.swp
 *.swo
 tfmicro.egg-info/
+tfmicro/*.pyc

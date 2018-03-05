@@ -4,6 +4,7 @@ import tensorflow as tf
 import keyboard
 
 stop_training = False
+stop_training_now = False
 
 
 class Callback(object):
@@ -68,17 +69,29 @@ class KeyboardStop(Callback):
 
         # stop
         def on_stop():
-            global stop_training
-            stop_training = True
-            sys.stdout.write('\n  -> Train will stop at the end of epoch! \n')
-            return False  # stop listener
+            global stop_training, stop_training_now
+            # twice press
+            if stop_training:
+                stop_training_now = True
+                sys.stdout.write('\n  -> Key \'q\' pressed twice. Train will stop at the end of step! \n')
+                return False  # stop listener
+            # first press
+            else:
+                stop_training = True
+                sys.stdout.write('\n  -> Train will stop at the end of epoch! \n')
+                return True # stop listener
 
         # Collect events until released
         keyboard.listen_key('q', on_stop)
         keyboard.start()
 
         print "! Note: press 'q' to stop training"
+        print "! Note: press 'q' twice to stop training after the step"
         super(Callback, self).__init__()
+
+    def on_step_end(self):
+        global stop_training_now
+        self.model.stop_training_now = stop_training_now
 
     def on_epoch_end(self):
         global stop_training
