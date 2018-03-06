@@ -33,8 +33,39 @@ def threadsafe_generator(f):
     return g
 
 
+class threadsafe_iter_advanced:
+    """Takes an iterator/generator and makes it thread-safe by
+    serializing call to the `next` method of given iterator/generator.
+    """
+
+    def __init__(self, it):
+        self.it = it
+        self.lock = threading.Lock()
+        self.i = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):  # Py3
+        with self.lock:
+            self.i += 1
+            return self.i, next(self.it)
+
+    def next(self):  # Py2
+        with self.lock:
+            self.i += 1
+            return self.i, self.it.next()
+
+
+def threadsafe_generator_advanced(f):
+    def g(*a, **kw):
+        return threadsafe_iter_advanced(f(*a, **kw))
+
+    return g
+
+
 class ThreadedGenerator(object):
-    def __init__(self, generator, max_queue_size=1000, thread_num=4, debug=''):
+    def __init__(self, data, mode, max_queue_size=1000, thread_num=4, debug=''):
         self.q = {}
         self.last_out = 0
         self.lock = threading.Lock()
@@ -42,7 +73,9 @@ class ThreadedGenerator(object):
         self.stop_threads = False
         self.debug = debug
 
-        self.generator = generator
+        self.data = data
+        self.mode = mode
+        self.generator = data.generator(mode)
         self.threads = None
         self.thread_num = thread_num
 
@@ -61,6 +94,8 @@ class ThreadedGenerator(object):
 
         if self.thread_num > 0:
             [t.join() for t in self.threads]
+
+        self.data.generator_stop(self.mode)
 
     def get_values(self):
 

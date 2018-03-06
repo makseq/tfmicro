@@ -25,6 +25,7 @@ class AttentionWithContext(object):
         uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32)  # => [b*num_files, t, units[0]]
         if self.keep_prob is not None:
             uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
+            self.debug('dropout enabled')
 
         # W
         # uit = tf.einsum('ijk,kl->ijl', hidden, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]

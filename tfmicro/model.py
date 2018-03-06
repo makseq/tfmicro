@@ -165,8 +165,8 @@ class Model(object):
         self.set_data(data)
         self.epochs = epochs
         self.callbacks = [] if callbacks is None else callbacks
-        self.train_generator = threadgen.ThreadedGenerator(data.generator('train'), max_queue_size, thread_num).start()
-        self.valid_generator = threadgen.ThreadedGenerator(data.generator('valid'), max_queue_size, valid_thread_num).start()
+        self.train_generator = threadgen.ThreadedGenerator(data, 'train', max_queue_size, thread_num).start()
+        self.valid_generator = threadgen.ThreadedGenerator(data, 'valid', max_queue_size, valid_thread_num).start()
         steps_per_epoch, validation_steps = data.steps_per_epoch, data.validation_steps
 
         # prepare train model
