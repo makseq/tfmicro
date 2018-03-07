@@ -97,7 +97,7 @@ class KeyboardStop(Callback):
         global stop_training
         self.model.stop_training = stop_training
         if stop_training:
-            sys.stdout.write(' -> Train stopped by user ')
+            sys.stdout.write('\n -> Train stopped by user \n')
 
 
 # Learning rate

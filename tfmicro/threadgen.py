@@ -71,7 +71,7 @@ class ThreadedGenerator(object):
         self.lock = threading.Lock()
         self.max_queue_size = max_queue_size
         self.stop_threads = False
-        self.debug = debug
+        self.verbose = debug
 
         self.data = data
         self.mode = mode
@@ -89,20 +89,24 @@ class ThreadedGenerator(object):
 
         return self
 
+    def debug(self, *args):
+        if self.verbose > 0:
+            for a in args:
+                print a,
+            print
+
     def stop(self):
         self.stop_threads = True
-
+        # stop generator
+        self.data.generator_stop(self.mode)
+        # stop main thread
         if self.thread_num > 0:
             [t.join() for t in self.threads]
 
-        self.data.generator_stop(self.mode)
-
     def get_values(self):
-
         # threaded version
         if self.thread_num > 0:
-            if self.debug:
-                print 'get', self.last_out
+            self.debug('get', self.last_out)
 
             # wait for last_out
             while self.last_out not in self.q:
@@ -117,7 +121,6 @@ class ThreadedGenerator(object):
             for i, value in self.generator:
                 return value
 
-
     def task(self):
         for i, values in self.generator:
 
@@ -126,11 +129,14 @@ class ThreadedGenerator(object):
                 if self.stop_threads:
                     return
 
-            self.lock.acquire(True)
+            if self.thread_num > 0:
+                self.lock.acquire(True)
+
             self.q[i] = values  # push
-            if self.debug:
-                print 'put', len(self.q), i
-            self.lock.release()
+            self.debug('put', len(self.q), i)
+
+            if self.thread_num > 0:
+                self.lock.release()
 
             if self.stop_threads:
                 return
