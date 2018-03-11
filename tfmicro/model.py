@@ -51,6 +51,9 @@ class Model(object):
         def eval_progress(s):
             return int(s / float(self.data.steps_per_epoch) * progress_width + 0.5)
 
+        def eval_indicator(s):
+            return int(s * progress_width + 0.5)
+
         p = eval_progress(step)
         self.need_update = self.need_update or (p != eval_progress(step - 1) and step >= 0)
         self.need_update = self.need_update or step == self.data.steps_per_epoch
@@ -63,14 +66,24 @@ class Model(object):
             msg3 = ' > test: %0.4f ' % test_cost_mean if test_cost_mean > 0 else ''
             msg4 = '[%0.2f]' % test_cost_std if len(self.test_costs) > 1 else ''
 
-            if step == 0:
-                # sys.stdout.write(' ' + msg1 + '\n' + msgt + msg2 + msg3)
-                sys.stdout.write(' ' + msg1 + msgt + msg2 + msg3 + msg4)
-            else:
-                # sys.stdout.write('\033[F\r' + msg1 + msgt + '\n\033[K' + msg2 + msg3)
-                sys.stdout.write('\033[K\r' + msg1 + msgt + msg2 + msg3 + msg4)
+            # back line for indicators
+            [sys.stdout.write('\033[F') for _ in self.indicators]
+
+            sys.stdout.write('\033[K\r' + msg1 + msgt + msg2 + msg3 + msg4)
+
+            # print indicators progress
+            for indicator in self.indicators:
+                p = eval_indicator(indicator['reference']())
+                msg_ind = '  [' + '=' * p + ' ' * (progress_width - p) + '] %s' % indicator['text']()
+                sys.stdout.write('\n\033[K' + msg_ind)
+
             sys.stdout.flush()
 
+    def info(self, args):
+        for a in args:
+            sys.stdout.write(a)
+        for _ in self.indicators:
+            sys.stdout.write('\n')
 
     def __init__(self, c):
         self.c = c
@@ -79,7 +92,11 @@ class Model(object):
         self.predictor = None
         self.prev_time = time.time()
         self.history = None
+        self.indicators = []
         self._reset_history()
+
+    def register_indicator(self, reference, text):
+        self.indicators += [{'reference': reference, 'text': text}]
 
     def _train_basics(self):
         c = self.c
@@ -188,7 +205,7 @@ class Model(object):
         self.cost_summary = tf.summary.scalar("cost", self.cost)
 
         self._reset_history()
-        self.epoch, self.step, train_cost, test_cost, first = 1, 0, 0, 0, True
+        self.epoch, self.step, train_cost, test_cost, restart = 1, 0, 0, 0, True
         self.epoch_time_start = time.time()
         self.train_costs, self.test_costs = [], []
         [call.set_model(self) for call in self.callbacks]  # set model to self.callbacks
@@ -198,10 +215,10 @@ class Model(object):
 
         while self.epoch <= self.epochs:  # train cycle, we start from 1, so use <=
             ' epoch begin '
-            if first:
-                first = False
+            if restart:
+                restart = False
                 self.step = 0
-                sys.stdout.write('\n  Epoch %i/%i\n' % (self.epoch, self.epochs))
+                self.info('\n  Epoch %i/%i\n' % (self.epoch, self.epochs))
                 [call.on_epoch_begin() for call in self.callbacks]  # self.callbacks
 
             ' step begin '
@@ -244,7 +261,7 @@ class Model(object):
                 sys.stdout.write('\n')
 
                 # reset & stop check
-                first = True
+                restart = True
                 self.epoch += 1
                 self.epoch_time_start = time.time()
                 if self.stop_training or self.stop_training_now:
