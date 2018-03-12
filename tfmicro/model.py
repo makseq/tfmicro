@@ -95,7 +95,7 @@ class Model(object):
         self.indicators = []
         self._reset_history()
 
-    def register_indicator(self, reference, text):
+    def add_indicator(self, reference, text):
         self.indicators += [{'reference': reference, 'text': text}]
 
     def _train_basics(self):
