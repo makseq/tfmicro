@@ -73,12 +73,12 @@ class KeyboardStop(Callback):
             # twice press
             if stop_training:
                 stop_training_now = True
-                sys.stdout.write('\n  -> Key \'q\' pressed twice. Train will stop at the end of step! \n')
+                self.model.info('\n  -> Key \'q\' pressed twice. Train will stop at the end of step! \n\n')
                 return False  # stop listener
             # first press
             else:
                 stop_training = True
-                sys.stdout.write('\n  -> Train will stop at the end of epoch! \n')
+                self.model.info('\n  -> Train will stop at the end of epoch! \n\n')
                 return True # stop listener
 
         # Collect events until released
@@ -97,7 +97,7 @@ class KeyboardStop(Callback):
         global stop_training
         self.model.stop_training = stop_training
         if stop_training:
-            sys.stdout.write(' -> Train stopped by user ')
+            self.model.info('\n  -> Train stopped by user \n\n')
 
 
 # Learning rate
@@ -107,12 +107,12 @@ class KeyboardLearningRate(Callback):
         # decrease
         def decrease_lr():
             self.model.learning_rate *= 1 - step_percent
-            sys.stdout.write('\n  -> Keyboard: Learning rate decreased to %0.2E \n' % self.model.learning_rate)
+            self.model.info('\n  -> Keyboard: Learning rate decreased to %0.2E \n\n' % self.model.learning_rate)
 
         # increase
         def increase_lr():
             self.model.learning_rate *= 1 + step_percent
-            sys.stdout.write('\n  -> Keyboard: Learning rate increased to %0.2E \n' % self.model.learning_rate)
+            self.model.info('\n  -> Keyboard: Learning rate increased to %0.2E \n\n' % self.model.learning_rate)
 
         # Collect events until released
         keyboard.listen_key('-', decrease_lr)
@@ -192,7 +192,7 @@ class ReducingLearningRate(Callback):
                     new_lr = old_lr * self.factor
                     new_lr = max(new_lr, self.min_lr)
                     self.model.learning_rate = new_lr
-                    print('\n  -> Callback: Learning rate = %0.2e' % new_lr)
+                    self.model.info('\n  -> Callback: Learning rate = %0.2e' % new_lr)
                     self.cooldown_counter = self.cooldown
                     self.wait = 0
             self.wait += 1

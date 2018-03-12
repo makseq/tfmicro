@@ -3,4 +3,4 @@ import callbacks
 import data
 import model
 import threadgen
-import attention
+import workers
