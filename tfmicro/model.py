@@ -201,6 +201,10 @@ class Model(object):
         self.train_writer.add_graph(self.sess.graph)
         self.saver = tf.train.Saver()
 
+        # load weights if we want to continue training
+        if 'model.preload' in c and c['model.preload']:
+            self.load_weights(c['model.preload'])
+
         # summary
         self.cost_summary = tf.summary.scalar("cost", self.cost)
 
@@ -284,6 +288,9 @@ class Model(object):
     def set_data(self, data):
         self.data = data
 
+    def set_config(self, config):
+        self.c = config
+
     def save(self, dir_path, saver=None):
         saver = self.saver if saver is None else saver
         os.makedirs(dir_path) if not os.path.exists(dir_path) else ()
@@ -307,7 +314,7 @@ class Model(object):
             models = set([m.split('.')[0].split('-')[1] for m in os.listdir(path) if 'model-' in m])  # get all models
             model_number = sorted([int(m) for m in models])[-1]  # last item
             model_name = '/model-%i' % model_number
-            
+
         try:
             graph_path = path + model_name + '.meta'
             model.saver = tf.train.import_meta_graph(graph_path)
@@ -324,3 +331,20 @@ class Model(object):
         print 'Variables loaded', path + model_name
         model.c = c
         return model
+
+    def load_weights(self, path):
+        if os.path.isdir(path):  # path is dir
+            c = json.load(open(path + '/config.json'))
+        else:  # path is filename
+            c = json.load(open(os.path.dirname(path) + '/config.json'))
+
+        model_name = ''
+        if os.path.isdir(path):  # take the last model
+            models = set([m.split('.')[0].split('-')[1] for m in os.listdir(path) if 'model-' in m])  # get all models
+            model_number = sorted([int(m) for m in models])[-1]  # last item
+            model_name = '/model-%i' % model_number
+
+        self.saver.restore(self.sess, path + model_name)
+        print 'Variables loaded', path + model_name
+
+        return
