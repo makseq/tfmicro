@@ -23,13 +23,13 @@ import threading
 import Queue
 
 
-if 'OPENBLAS_NUM_THREADS' not in os.environ or int(os.environ['OPENBLAS_NUM_THREADS']) != 1:
-    print '! tfmicro.workers error: Set OPENBLAS_NUM_THREADS=1 before import numpy or numpy depending modules'
-    exit(-1)
-
-
 class Workers:
     def __init__(self, c, mode, data):
+        # check openblas threads to prevent threads hell while using multiprocessing
+        if 'OPENBLAS_NUM_THREADS' not in os.environ or int(os.environ['OPENBLAS_NUM_THREADS']) != 1:
+            print '! tfmicro.workers error: Set OPENBLAS_NUM_THREADS=1 before import numpy or numpy depending modules'
+            exit(-1)
+
         self.c = c
         self.data = data
         self.mode = mode
