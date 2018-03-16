@@ -97,11 +97,12 @@ class Model(object):
 
             sys.stdout.flush()
 
-    def info(self, args):
+    def info(self, args, return_lines=True):
         for a in args:
             sys.stdout.write(a)
-        for _ in self.indicators:
-            sys.stdout.write('\n')
+        if return_lines:
+            for _ in self.indicators:
+                sys.stdout.write('\n')
 
     def __init__(self, c):
         self.c = c
