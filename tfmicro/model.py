@@ -81,7 +81,7 @@ class Model(object):
             msg1 = '  [' + '=' * p + '-' * (progress_width - p) + '] %i/%i' % (step, self.data.steps_per_epoch)
             msgt = ' %0.0f/%0.0fs' % (dur, (dur/float(step)) * self.data.steps_per_epoch) if step > 0 else ''
             msg2 = ' > train: %0.4f [%0.2f]' % (train_cost_mean, train_cost_std)
-            msg3 = ' > test: %0.4f ' % test_cost_mean if test_cost_mean > 0 else ''
+            msg3 = ' > valid: %0.4f ' % test_cost_mean if test_cost_mean > 0 else ''
             msg4 = '[%0.2f]' % test_cost_std if len(self.test_costs) > 1 else ''
 
             # back line for indicators
