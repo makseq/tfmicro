@@ -195,11 +195,11 @@ class Model(object):
     def _reset_history(self):
         self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': [], 'lr': []}
 
-    def fit_data(self, data, callbacks=None, epochs=100, max_queue_size=100, thread_num=4, valid_thread_num=4, use_gpu=True,
+    def fit_data(self, data, callbacks=None, max_queue_size=100, thread_num=4, valid_thread_num=4,
                  tensorboard_subdir=''):
         c = self.c
         self.set_data(data)
-        self.epochs = epochs
+        self.epochs = c['model.epochs']
         self.callbacks = [] if callbacks is None else callbacks
         self.train_generator = threadgen.ThreadedGenerator(data, 'train', max_queue_size, thread_num).start()
         self.valid_generator = threadgen.ThreadedGenerator(data, 'valid', max_queue_size, valid_thread_num).start()
@@ -211,7 +211,7 @@ class Model(object):
         self._train_model(data)
 
         # session init
-        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': use_gpu}))
+        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': c['use_gpu']}))
         self.sess.run(tf.global_variables_initializer())
 
         # log writer & model saver
@@ -317,16 +317,21 @@ class Model(object):
         json.dump(self.c, open(dir_path + '/config.json', 'w'), indent=4)
 
     @classmethod
-    def load(cls, path):
-        if os.path.isdir(path):  # path is dir
-            c = json.load(open(path + '/config.json'))
-        else:  # path is filename
-            c = json.load(open(os.path.dirname(path) + '/config.json'))
+    def load(cls, path, forced_config=None):
+        # prepare config
+        if forced_config is not None:
+            c = forced_config
+        else:
+            # load config from file
+            if os.path.isdir(path):  # path is dir
+                c = json.load(open(path + '/config.json'))
+            else:  # path is filename
+                c = json.load(open(os.path.dirname(path) + '/config.json'))
 
         model = cls(c)
         model._reset_history()
         tf.reset_default_graph()
-        model.sess = tf.Session()
+        model.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': c['use_gpu']}))
 
         model_name = ''
         if os.path.isdir(path):  # take the last model
@@ -336,7 +341,7 @@ class Model(object):
 
         try:
             graph_path = path + model_name + '.meta'
-            model.saver = tf.train.import_meta_graph(graph_path)
+            model.saver = tf.train.import_meta_graph(graph_path, clear_devices=True)
             print 'Graph loaded', graph_path
         except Exception as e:
             if not os.path.exists(graph_path):
