@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# noispection PyPep8Naming
-'''
+"""
 TFMicro
 Copyright (C) 2018 Maxim Tkachenko
 
@@ -16,14 +15,14 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
+"""
 import numpy as np
 import multiprocessing
 import matplotlib.pyplot as plt
 import threadgen
 
 
+# noinspection PyPep8Naming
 # noinspection PyUnresolvedReferences
 class Data(object):
     def __init__(self, c):

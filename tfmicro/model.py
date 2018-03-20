@@ -1,4 +1,4 @@
-'''
+"""
 TFMicro
 Copyright (C) 2018 Maxim Tkachenko
 
@@ -14,8 +14,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
+"""
 import json
 import os
 import sys
@@ -25,34 +24,12 @@ import tensorflow as tf
 import gc
 
 import threadgen
-
-
-class Predictor(object):
-
-    def __init__(self, train_model):
-        graph = tf.get_default_graph()
-        self.X = graph.get_tensor_by_name("X:0")  # set input
-        self.Y = graph.get_tensor_by_name("Y:0")  # set input
-        self.output = graph.get_tensor_by_name("output:0")  # set output operation
-        self.sess = train_model.sess
-        self.train_model = train_model
-        self.update_ops = []
-
-    def set_update_ops(self, ops):
-        self.update_ops = ops
-
-    def predict(self, x):
-        out_shape = self.Y.get_shape()
-        params = [self.output] + self.update_ops
-        result = self.sess.run(params, feed_dict={
-            self.X: x,
-            self.Y: np.zeros([len(x), out_shape[1], out_shape[2]])
-        })
-        return result[0]
+from model_loader import Loader
+from model_predictor import Predictor
 
 
 # noinspection PyAttributeOutsideInit
-class Model(object):
+class Model(Loader):
 
     def progress(self, step):
         progress_width = 30
@@ -104,8 +81,8 @@ class Model(object):
             for _ in self.indicators:
                 sys.stdout.write('\n')
 
-    def __init__(self, c):
-        self.c = c
+    def __init__(self, config):
+        self.c = config
         self.stop_training = False
         self.stop_training_now = False
         self.predictor = None
@@ -298,7 +275,8 @@ class Model(object):
 
     def _predict_model(self):
         if self.predictor is None:
-            self.predictor = Predictor(self)
+            self.predictor = Predictor(self.c)
+            self.predictor.set_session = self.sess
 
     def predict(self, x):
         self._predict_model()
@@ -318,42 +296,8 @@ class Model(object):
 
     @classmethod
     def load(cls, path, forced_config=None):
-        # prepare config
-        if forced_config is not None:
-            c = forced_config
-        else:
-            # load config from file
-            if os.path.isdir(path):  # path is dir
-                c = json.load(open(path + '/config.json'))
-            else:  # path is filename
-                c = json.load(open(os.path.dirname(path) + '/config.json'))
-
-        model = cls(c)
+        model = super(Model, cls).load(path, forced_config)
         model._reset_history()
-        tf.reset_default_graph()
-        model.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': c['use_gpu']}))
-
-        model_name = ''
-        if os.path.isdir(path):  # take the last model
-            models = set([m.split('.')[0].split('-')[1] for m in os.listdir(path) if 'model-' in m])  # get all models
-            model_number = sorted([int(m) for m in models])[-1]  # last item
-            model_name = '/model-%i' % model_number
-
-        try:
-            graph_path = path + model_name + '.meta'
-            model.saver = tf.train.import_meta_graph(graph_path, clear_devices=True)
-            print 'Graph loaded', graph_path
-        except Exception as e:
-            if not os.path.exists(graph_path):
-                print "No graph loaded! Path doesn't exist:", graph_path
-            else:
-                print 'No graph loaded! Some errors occur:', graph_path
-                print e.__repr__()
-            model.saver = tf.train.Saver()
-
-        model.saver.restore(model.sess, path + model_name)
-        print 'Variables loaded', path + model_name
-        model.c = c
         return model
 
     def load_weights(self, path):

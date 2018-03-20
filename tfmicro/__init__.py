@@ -1,4 +1,4 @@
-'''
+"""
 TFMicro
 Copyright (C) 2018 Maxim Tkachenko
 
@@ -14,7 +14,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import callback_plot
 import callbacks
@@ -22,3 +22,7 @@ import data
 import model
 import threadgen
 import workers
+import model_loader
+import model_predictor
+
+__version__ = '0.1'
