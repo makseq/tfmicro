@@ -273,9 +273,9 @@ class Model(Loader):
         gc.collect()
         return self
 
-    def _predict_model(self):
+    def _predict_model(self, predictor_cls):
         if self.predictor is None:
-            self.predictor = Predictor(self.c)
+            self.predictor = predictor_cls(self.c)
             self.predictor.set_session(self.sess)
 
     def predict(self, x):
