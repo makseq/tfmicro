@@ -279,7 +279,7 @@ class Model(Loader):
             self.predictor.set_session(self.sess)
 
     def predict(self, x):
-        self._predict_model()
+        self._predict_model(Predictor)
         return self.predictor.predict(x)
 
     def set_data(self, data):
