@@ -276,6 +276,7 @@ class Model(Loader):
     def _predict_model(self, predictor_cls):
         if self.predictor is None:
             self.predictor = predictor_cls(self.c)
+            self.predictor.prepare()
             self.predictor.set_session(self.sess)
 
     def predict(self, x):
