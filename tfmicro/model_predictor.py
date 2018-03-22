@@ -25,6 +25,7 @@ class Predictor(Loader):
 
     def __init__(self, config):
         self.graph = tf.get_default_graph()
+        self.config = config
 
     def prepare(self):
         self.input = self.graph.get_tensor_by_name("X:0")  # set input placeholder
