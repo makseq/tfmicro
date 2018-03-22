@@ -25,6 +25,7 @@ class Predictor(Loader):
 
     def __init__(self, config):
         self.graph = tf.get_default_graph()
+        self.config = config
         try:
             self.prepare()
         except Exception:
