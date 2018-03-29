@@ -88,7 +88,9 @@ class Model(Loader):
         self.predictor = None
         self.prev_time = time.time()
         self.history = None
+        self.epoch = 0
         self.indicators = []
+        self.sess = None
         self._reset_history()
 
     def add_indicator(self, reference, text):
@@ -188,7 +190,7 @@ class Model(Loader):
         self._train_model(data)
 
         # session init
-        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': c['use_gpu']}))
+        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': self.c['use_gpu']}))
         self.sess.run(tf.global_variables_initializer())
 
         # log writer & model saver
@@ -273,15 +275,12 @@ class Model(Loader):
         gc.collect()
         return self
 
-    def _predict_model(self, predictor_cls):
+    def get_predictor(self, predictor_cls):
         if self.predictor is None:
             self.predictor = predictor_cls(self.c)
             self.predictor.prepare()
             self.predictor.set_session(self.sess)
-
-    def predict(self, x):
-        self._predict_model(Predictor)
-        return self.predictor.predict(x)
+        return self.predictor
 
     def set_data(self, data):
         self.data = data
@@ -302,6 +301,7 @@ class Model(Loader):
         return model
 
     def load_weights(self, path):
+        self.saver = tf.train.Saver()
         if os.path.isdir(path):  # path is dir
             c = json.load(open(path + '/config.json'))
         else:  # path is filename

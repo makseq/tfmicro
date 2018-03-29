@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import numpy as np
 import tensorflow as tf
 
 from model_loader import Loader
@@ -31,11 +32,43 @@ class Predictor(Loader):
         self.input = self.graph.get_tensor_by_name("X:0")  # set input placeholder
         self.output = self.graph.get_tensor_by_name("output:0")  # set output operation
 
-    def predict(self, x):
+    def predict(self, feats):
         result = self.sess.run(self.output, feed_dict={
-            self.input: x,
+            self.input: feats,
         })
         return result
+
+    def split_predict(self, feats, batch_size, feature_steps, zero):
+        """ Split features x into parts with equal size and feed it into predict  
+            
+        :param feats: features
+        :return: averaged vectors from splitted dvectors
+        """
+
+        # split long features into parts by timesteps
+        parts = [feats[i:i + feature_steps] for i in xrange(0, len(feats), feature_steps)]  # N x timesteps x dim
+        parts = np.array(parts)
+        dim = feats.shape[-1]
+        d_parts = []
+
+        # reformat batch with created parts
+        for b in xrange(0, len(parts), batch_size):
+            # prepare batch
+            p = parts[b:b + batch_size]  # new batch: len(p), timesteps, ?
+            x = np.zeros((len(p), feature_steps, dim))
+
+            for i in xrange(len(p)):  # timesteps can be variable in parts
+                x[i, :] = zero
+                x[i, 0:len(p[i]), :] = p[i]
+
+            # evaluate dvector
+            d = self.predict(x)[0:len(p)]
+            d_parts += [d]
+
+        # mean all dvector parts
+        d_parts = np.vstack(d_parts)
+        dvector = np.mean(d_parts, axis=0)
+        return dvector
 
     def set_session(self, sess):
         self.sess = sess
