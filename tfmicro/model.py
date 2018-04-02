@@ -195,7 +195,8 @@ class Model(Loader):
         self.train_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/train')
         self.valid_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/valid')
         self.train_writer.add_graph(self.sess.graph)
-        self.saver = tf.train.Saver()
+        if not hasattr(self, 'saver'):
+            self.saver = tf.train.Saver()
 
         # load weights if we want to continue training
         if 'model.preload' in c and c['model.preload']:
