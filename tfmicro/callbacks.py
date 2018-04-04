@@ -65,7 +65,8 @@ class ModelCheckpoint(Callback):
         super(Callback, self).__init__()
 
     def on_start(self):
-        self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)
+        var_list = self.model.saver._var_list
+        self.saver = tf.train.Saver(var_list, max_to_keep=self.max_to_keep)
 
     def on_epoch_end(self):
         val = self.model.history[self.monitor][-1]

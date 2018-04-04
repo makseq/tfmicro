@@ -302,7 +302,6 @@ class Model(Loader):
         return model
 
     def load_weights(self, path):
-        self.saver = tf.train.Saver()
         if os.path.isdir(path):  # path is dir
             c = json.load(open(path + '/config.json'))
         else:  # path is filename
