@@ -29,12 +29,17 @@ class Predictor(Loader):
         self.config = config
 
     def prepare(self):
-        self.input = self.graph.get_tensor_by_name("X:0")  # set input placeholder
-        self.output = self.graph.get_tensor_by_name("output:0")  # set output operation
+        """ Override this function in your own predictor class if need """
+
+        inp = self.config['predict.input'] if 'predict.input' in self.config else "X:0"
+        out = self.config['predict.output'] if 'predict.output' in self.config else "output:0"
+
+        self.input = self.graph.get_tensor_by_name(inp)  # set input placeholder
+        self.output = self.graph.get_tensor_by_name(out)  # set output operation
 
     def predict(self, feats):
         result = self.sess.run(self.output, feed_dict={
-            self.input: feats,
+            self.input: feats
         })
         return result
 

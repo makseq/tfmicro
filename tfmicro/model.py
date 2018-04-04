@@ -91,6 +91,7 @@ class Model(Loader):
         self.epoch = 0
         self.indicators = []
         self.sess = None
+        self.saver = None
         self._reset_history()
 
     def add_indicator(self, reference, text):
@@ -197,7 +198,7 @@ class Model(Loader):
         self.train_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/train')
         self.valid_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/valid')
         self.train_writer.add_graph(self.sess.graph)
-        if not hasattr(self, 'saver'):
+        if self.saver is None:
             self.saver = tf.train.Saver()
 
         # load weights if we want to continue training
