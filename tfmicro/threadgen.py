@@ -83,7 +83,7 @@ def threadsafe_generator_advanced(f):
 
 
 class ThreadedGenerator(object):
-    def __init__(self, data, mode, max_queue_size=1000, thread_num=4, debug=''):
+    def __init__(self, data, mode, max_queue_size=1000, thread_num=4, debug=0):
         self.q = {}
         self.last_out = 0
         self.lock = threading.Lock()

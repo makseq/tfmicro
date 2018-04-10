@@ -42,6 +42,9 @@ class Data(object):
     def split(self):
         return train, test
 
+    def generator_stop(self, mode):
+        return None
+
     # generator
     @threadgen.threadsafe_generator
     def generator(self, mode):
