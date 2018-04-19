@@ -32,7 +32,7 @@ class AttentionWithContext(object):
             self.verbose = verbose
             self.units = units
             self.keep_prob = keep_prob
-            dim = shape[-1]
+            dim = int(shape[-1]) if isinstance(shape[-1], tf.Dimension) else shape[-1]
             #self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
             #self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
             self.U = tf.Variable(initial_value=init([units, dim]), dtype=tf.float32, name='U')
