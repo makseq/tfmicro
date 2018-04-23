@@ -24,6 +24,7 @@ import tensorflow as tf
 import gc
 
 import threadgen
+from tensorflow.python import debug as tf_debug
 from model_loader import Loader
 from model_predictor import Predictor
 
@@ -190,8 +191,11 @@ class Model(Loader):
         tf.reset_default_graph()
         self._train_model(data)
 
-        # session init
+        # session init & tf_debug
         self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': self.c['use_gpu']}))
+        if 'tf_debug.enabled' in self.c and self.c['tf_debug.enabled']:
+            port = self.c['tf_debug.port'] if 'tf_debug.port' in self.c else '6064'
+            self.sess = tf_debug.TensorBoardDebugWrapperSession(self.sess, 'localhost:'+port)
         self.sess.run(tf.global_variables_initializer())
 
         # log writer & model saver

@@ -23,7 +23,7 @@ import tensorflow as tf
 
 class AttentionWithContext(object):
 
-    def __init__(self, shape, units, keep_prob=None, name='attention_context', swap_memory=False, verbose=False):
+    def __init__(self, shape, units, keep_prob=None, name='attention_context', use_rnn=True, swap_memory=False, verbose=False):
         with tf.variable_scope(name):
             init = tf.glorot_uniform_initializer()
             self.shape = shape
@@ -33,24 +33,33 @@ class AttentionWithContext(object):
             self.units = units
             self.keep_prob = keep_prob
             dim = int(shape[-1]) if isinstance(shape[-1], tf.Dimension) else shape[-1]
-            #self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
-            #self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
+
+            self.use_rnn = use_rnn
+            if use_rnn:
+                self.rnn_cell = tf.nn.rnn_cell.GRUCell(units)
+            else:
+                self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
+                self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
+
             self.U = tf.Variable(initial_value=init([units, dim]), dtype=tf.float32, name='U')
             self.Ub = tf.Variable(initial_value=init([dim]), dtype=tf.float32, name='b')
-            self.rnn_cell = tf.nn.rnn_cell.GRUCell(units)
             self.swap_memory = swap_memory
 
     def call(self, x):
-        uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
-        if self.keep_prob is not None:
-            uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
-            self.debug('dropout enabled')
 
-        # W
-        # uit = tf.einsum('ijk,kl->ijl', hidden, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]
-        # uit += self.Wb  # => [b, time, att]
-        # uit = tf.tanh(uit)  # => => [b, time, dim]
-        # self.debug('uit shape', uit.get_shape())
+        # RNN attention
+        if self.use_rnn:
+            uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
+            if self.keep_prob is not None:
+                uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
+                self.debug('dropout enabled')
+
+        # W simple attention
+        else:
+            uit = tf.einsum('ijk,kl->ijl', x, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]
+            uit += self.Wb  # => [b, time, att]
+            uit = tf.tanh(uit)  # => => [b, time, dim]
+            self.debug('uit shape', uit.get_shape())
 
         ait = tf.einsum('ijk,kl->ijl', uit, self.U)  # [b, time, att] x [att, dim] => [b, time, dim]
         ait += self.Ub  # => [b, time, att]
