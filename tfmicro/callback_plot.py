@@ -57,7 +57,7 @@ class PlotCallback(callbacks.Callback):
 
     @checker
     def on_step_end(self):
-        if len(self.train_preds) < 3 and self.train_step % 10 == 0:
+        if len(self.train_preds) < 3 and self.train_step % 2 == 0:
             self.train_preds += [self.model.train_prediction[0:1]]  # take only the first
             self.train_y += [self.model.y[0:1]]  # take only the first
         self.train_step += 1

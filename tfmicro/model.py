@@ -199,9 +199,9 @@ class Model(Loader):
         self.sess.run(tf.global_variables_initializer())
 
         # log writer & model saver
-        self.tensorboard_subdir = tensorboard_subdir
-        self.train_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/train')
-        self.valid_writer = tf.summary.FileWriter('./tensorboard/' + tensorboard_subdir + '/valid')
+        self.tensorboard_subdir = './tensorboard/' + tensorboard_subdir
+        self.train_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/train')
+        self.valid_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/valid')
         self.train_writer.add_graph(self.sess.graph)
         if self.saver is None:
             self.saver = tf.train.Saver()
