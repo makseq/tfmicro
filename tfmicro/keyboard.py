@@ -28,8 +28,9 @@ except:
 
 import threading
 
-global started, keyboard_events, exiter
+global started, keyboard_events, exiter, pressed
 keyboard_events = {}
+pressed = []
 started = False
 
 
@@ -64,10 +65,20 @@ exiter = Exiter()
 
 def reset():
     keyboard_events = {}
+    pressed = []
 
 
 def listen_key(key, action):
     keyboard_events.update({key: action})
+
+
+# use this to check some key was pressed
+def was_pressed(key):
+    global pressed
+    if key in pressed:
+        pressed.remove(key)
+        return True
+    return False
 
 
 def start():
@@ -77,13 +88,14 @@ def start():
         return
 
     def run():
-        global keyboard_events, exiter
+        global keyboard_events, exiter, pressed
 
         while not exiter.stop:
             try:
                 exiter.forward()
                 tty.setcbreak(exiter.fd)
                 answer = sys.stdin.read(1)
+                pressed += [answer]
                 k = keyboard_events
                 if answer in k:
                     continue_ = k[answer]()

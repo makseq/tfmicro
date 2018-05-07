@@ -20,9 +20,9 @@ import callback_plot
 import callbacks
 import data
 import model
-import threadgen
-import workers
 import model_loader
 import model_predictor
+import threadgen
+import workers
 
 __version__ = '0.1'

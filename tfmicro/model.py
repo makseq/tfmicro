@@ -27,7 +27,7 @@ import threadgen
 from tensorflow.python import debug as tf_debug
 from model_loader import Loader
 from model_predictor import Predictor
-
+import keyboard
 
 # noinspection PyAttributeOutsideInit
 class Model(Loader):
@@ -176,6 +176,33 @@ class Model(Loader):
     def _reset_history(self):
         self.history = {'loss': [], 'val_loss': [], 'loss_std': [], 'val_loss_std': [], 'time': [], 'lr': []}
 
+    def run_validation(self, write_history=True, run_callbacks=True):
+        self.valid_step = 0
+        self.test_costs = []
+        [call.on_validation_begin() for call in self.callbacks if run_callbacks]
+
+        while True:  # validation cycle
+            [call.on_validation_step_begin() for call in self.callbacks if run_callbacks]
+            self.validation_step()
+            self.valid_writer.flush()  # write summary to disk right now
+            [call.on_validation_step_end() for call in self.callbacks if run_callbacks]
+            self.progress(self.step)
+            self.valid_step += 1
+            if self.valid_step >= self.data.validation_steps:
+                break
+
+        # print info to history
+        if write_history:
+            self.history['loss'] += [np.mean(self.train_costs)]
+            self.history['loss_std'] += [np.std(self.train_costs)]
+            self.history['val_loss'] += [np.mean(self.test_costs)]
+            self.history['val_loss_std'] += [np.std(self.test_costs)]
+            self.history['lr'] += [self.learning_rate]
+            self.history['time'] += [time.time() - self.epoch_time_start]
+            self.train_costs, self.test_costs = [], []
+
+        [call.on_validation_end() for call in self.callbacks if run_callbacks]
+
     def fit_data(self, data, callbacks=None, max_queue_size=100, thread_num=4, valid_thread_num=4,
                  tensorboard_subdir=''):
         c = self.c
@@ -184,7 +211,8 @@ class Model(Loader):
         self.callbacks = [] if callbacks is None else callbacks
         self.train_generator = threadgen.ThreadedGenerator(data, 'train', max_queue_size, thread_num).start()
         self.valid_generator = threadgen.ThreadedGenerator(data, 'valid', max_queue_size, valid_thread_num).start()
-        steps_per_epoch, validation_steps = data.steps_per_epoch, data.validation_steps
+        self.keyboard = keyboard
+        self.keyboard.start()
 
         # prepare train model
         print ' Compiling model'
@@ -242,28 +270,10 @@ class Model(Loader):
             self.progress(self.step)  # print progress
 
             ' epoch end '
-            if self.step >= steps_per_epoch or self.stop_training_now:
+            if self.step >= self.data.steps_per_epoch or self.stop_training_now:
 
                 ' validation pass '
-                self.valid_step = 0
-                while True:  # validation cycle
-                    [call.on_validation_step_begin() for call in self.callbacks]
-                    self.validation_step()
-                    self.valid_writer.flush()  # write summary to disk right now
-                    [call.on_validation_step_end() for call in self.callbacks]
-                    self.progress(self.step)
-                    self.valid_step += 1
-                    if self.valid_step >= validation_steps:
-                        break
-
-                # print info to history
-                self.history['loss'] += [np.mean(self.train_costs)]
-                self.history['loss_std'] += [np.std(self.train_costs)]
-                self.history['val_loss'] += [np.mean(self.test_costs)]
-                self.history['val_loss_std'] += [np.std(self.test_costs)]
-                self.history['lr'] += [self.learning_rate]
-                self.history['time'] += [time.time() - self.epoch_time_start]
-                self.train_costs, self.test_costs = [], []
+                self.run_validation()
 
                 # self.callbacks: on epoch end
                 [call.on_epoch_end() for call in self.callbacks]

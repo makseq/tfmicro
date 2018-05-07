@@ -38,9 +38,13 @@ class Callback(object):
 
     def on_step_end(self): pass
 
+    def on_validation_begin(self): pass
+
     def on_validation_step_begin(self): pass
 
     def on_validation_step_end(self): pass
+
+    def on_validation_end(self): pass
 
     def on_epoch_begin(self): pass
 
@@ -92,19 +96,31 @@ class KeyboardStop(Callback):
             # twice press
             if stop_training:
                 stop_training_now = True
-                self.model.info('\n  -> Key \'q\' pressed twice. Train will stop at the end of step! \n\n')
+                self.model.info('\n  -> Key \'q\' pressed twice. Training will stop at the end of step! \n\n')
                 return False  # stop listener
             # first press
             else:
                 stop_training = True
-                self.model.info('\n  -> Train will stop at the end of epoch! \n\n')
-                return True # stop listener
+                self.model.info('\n  -> Training will stop at the end of epoch! \n\n')
+                return True  # continue listener
+
+        # stop
+        def on_resume():
+            global stop_training, stop_training_now
+            if stop_training_now:
+                print "\n -> Sorry, can't resume train, double 'q' pressed"
+            else:
+                stop_training = False
+                self.model.info('\n  -> Training will resume! \n\n')
+                return True  # continue listener
 
         # Collect events until released
         keyboard.listen_key('q', on_stop)
+        keyboard.listen_key('Q', on_resume)
         keyboard.start()
 
         print "! Note: press 'q' to stop training"
+        print "! Note: press 'Q' to resume training"
         print "! Note: press 'q' twice to stop training after the step"
         super(Callback, self).__init__()
 
@@ -117,6 +133,35 @@ class KeyboardStop(Callback):
         self.model.stop_training = stop_training
         if stop_training:
             self.model.info('\n  -> Train stopped by user \n\n')
+
+
+# Validation on keyboard press 'v'
+class KeyboardValidation(Callback):
+    def __init__(self, write_history=True, run_callbacks=True):
+        global do_validation
+        do_validation = False
+        self.write_history = write_history
+        self.run_callbacks = run_callbacks
+
+        # validation
+        def validation():
+            global do_validation
+            do_validation = True
+            return True  # continue listener
+
+        # Collect events until released
+        keyboard.listen_key('v', validation)
+        keyboard.start()
+
+        print "! Note: press 'v' to run validation"
+        super(Callback, self).__init__()
+
+    def on_step_end(self):
+        global do_validation
+        if do_validation:
+            self.model.info("\n  -> Key 'v' pressed, run validation \n")
+            self.model.run_validation(write_history=self.write_history, run_callbacks=self.run_callbacks)
+            do_validation = False
 
 
 # Learning rate
