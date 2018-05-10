@@ -39,10 +39,10 @@ class Model(Loader):
         self.need_update = (time.time() - self.prev_time) > 0.5  # more 0.5 sec
 
         # costs
-        train_cost_mean = np.mean(self.train_costs)
-        train_cost_std = np.std(self.train_costs)
+        train_cost_mean = np.mean(self.train_costs) if self.train_costs else 0
+        train_cost_std = np.std(self.train_costs) if self.train_costs else 0
         test_cost_mean = np.mean(self.test_costs) if self.test_costs else 0
-        test_cost_std = np.std(self.test_costs) if len(self.test_costs) > 1 else 0
+        test_cost_std = np.std(self.test_costs) if self.test_costs else 0
 
         def eval_progress(s):
             return int(s / float(self.data.steps_per_epoch) * progress_width + 0.5)
@@ -105,7 +105,7 @@ class Model(Loader):
 
         self.epoch_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="epoch")
         self.step_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="step")
-        self.training = tf.placeholder_with_default(tf.constant(0, dtype=tf.int64), shape=[], name="is_training")
+        self.training = tf.placeholder_with_default(tf.constant(0, dtype=tf.int64), shape=[], name="training")
         self.learning_rate_tf = tf.placeholder_with_default(tf.constant(self.learning_rate, dtype=tf.float32), shape=[])
 
     def _train_model(self, data):

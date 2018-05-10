@@ -135,6 +135,20 @@ class KeyboardStop(Callback):
             self.model.info('\n  -> Train stopped by user \n\n')
 
 
+# Make validation in every n training steps
+class Validation(Callback):
+    def __init__(self, n_steps, write_history=True, run_callbacks=True):
+        self.write_history = write_history
+        self.run_callbacks = run_callbacks
+        self.n_steps = n_steps
+        super(Callback, self).__init__()
+
+    def on_step_end(self):
+        if self.model.step % self.n_steps == 0 and self.model.step != 0:
+            self.model.run_validation(write_history=self.write_history, run_callbacks=self.run_callbacks)
+            do_validation = False
+
+
 # Validation on keyboard press 'v'
 class KeyboardValidation(Callback):
     def __init__(self, write_history=True, run_callbacks=True):
