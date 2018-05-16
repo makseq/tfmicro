@@ -217,6 +217,7 @@ class Model(Loader):
         # prepare train model
         print ' Compiling model'
         tf.reset_default_graph()
+        tf.set_random_seed(1234)
         self._train_model(data)
 
         # session init & tf_debug

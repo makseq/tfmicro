@@ -36,6 +36,7 @@ class Loader(object):
 
         model = cls(c)
         tf.reset_default_graph()
+        tf.set_random_seed(1234)
         use_gpu = c['use_gpu'] if 'use_gpu' not in os.environ else os.environ['use_gpu']
         model.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': c['use_gpu']}))
 
