@@ -42,7 +42,7 @@ class Loader(object):
         allow_growth = c['allow_growth'] if 'allow_growth' in c else True
 
         config_proto = tf.ConfigProto(device_count={'GPU': c['use_gpu']})
-        config_proto.gpu_options.allow_growth = True
+        config_proto.gpu_options.allow_growth = allow_growth
         model.sess = tf.Session(config=config_proto)
 
         model_name = ''
