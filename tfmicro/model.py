@@ -330,7 +330,15 @@ class Model(Loader):
             model_number = sorted([int(m) for m in models])[-1]  # last item
             model_name = '/model-%i' % model_number
 
-        self.saver.restore(self.sess, path + model_name)
+        if u'model.preload.exclude_var_names' in self.c:
+            var_list = []
+            for var_name in self.c['model.preload.exclude_var_names']:
+                var_list += [tv for tv in self.saver._var_list if var_name not in tv.name]
+            saver = tf.train.Saver(var_list)
+            print 'Variables excluded'
+        else:
+            saver = self.saver
+        saver.restore(self.sess, path + model_name)
         print 'Variables loaded', path + model_name
 
         return
