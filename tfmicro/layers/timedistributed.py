@@ -33,9 +33,13 @@ class TimeDistributed:
             self.weights = tf.Variable(init([int(input_shape[-1]), output_dim]), dtype=tf.float32)
             self.biases = tf.Variable(init([output_dim]))
 
+    def __call__(self, x):
+        with tf.variable_scope(self.name):
+            # [b, t, units] x [input_dim, output_dim] = [b, t, output_dim]
+            self.layer = tf.einsum('ijk,km->ijm', x, self.weights)
+            if self.use_biases:
+                self.layer = self.layer + self.biases
+            return self.layer
+
     def call(self, x):
-        # [b, t, units] x [input_dim, output_dim] = [b, t, output_dim]
-        self.layer = tf.einsum('ijk,km->ijm', x, self.weights)
-        if self.use_biases:
-            self.layer = self.layer + self.biases
-        return self.layer
+        return self.__call__(x)

@@ -106,6 +106,7 @@ class Model(Loader):
         self.epoch_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="epoch")
         self.step_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="step")
         self.training = tf.placeholder_with_default(tf.constant(0, dtype=tf.int64), shape=[], name="training")
+        self.is_training = tf.equal(self.training, 1)
         self.learning_rate_tf = tf.placeholder_with_default(tf.constant(self.learning_rate, dtype=tf.float32), shape=[])
 
     def _train_model(self, data):
