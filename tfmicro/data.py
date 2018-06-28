@@ -35,12 +35,12 @@ class Data(object):
         return None
 
     # prepare your data here
-    def prepare(s, x, t):
-        c = s.c
+    def prepare(self):
+        c = self.c
 
     # split data into train & validation sets
     def split(self):
-        return train, test
+        return None, None
 
     def generator_stop(self, mode):
         return None

@@ -45,34 +45,37 @@ class AttentionWithContext(object):
             self.Ub = tf.Variable(initial_value=init([dim]), dtype=tf.float32, name='b')
             self.swap_memory = swap_memory
 
+    def __call__(self, x):
+        with tf.variable_scope(self.name):
+            # RNN attention
+            if self.use_rnn:
+                uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
+                if self.keep_prob is not None:
+                    uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
+                    self.debug('dropout enabled')
+
+            # W simple attention
+            else:
+                uit = tf.einsum('ijk,kl->ijl', x, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]
+                uit += self.Wb  # => [b, time, att]
+                uit = tf.tanh(uit)  # => => [b, time, dim]
+                self.debug('uit shape', uit.get_shape())
+
+            ait = tf.einsum('ijk,kl->ijl', uit, self.U)  # [b, time, att] x [att, dim] => [b, time, dim]
+            ait += self.Ub  # => [b, time, att]
+            self.debug('ait shape', ait.get_shape())
+
+            a = tf.exp(ait)  # => [b, time, dim]
+            a /= tf.reduce_sum(a, axis=1, keepdims=True) + self.epsilon  # => [b, time, dim]
+            self.a = a
+
+            weighted_input = x * a  # [b, time, dim] x [b, time, dim] => [b, time, dim]
+            self.weighted_input = weighted_input
+            self.debug('wighted input shape', weighted_input.get_shape())
+            return tf.reduce_sum(weighted_input, axis=1)  # => [b, dim]
+
     def call(self, x):
-
-        # RNN attention
-        if self.use_rnn:
-            uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
-            if self.keep_prob is not None:
-                uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
-                self.debug('dropout enabled')
-
-        # W simple attention
-        else:
-            uit = tf.einsum('ijk,kl->ijl', x, self.W)  # [b, time, dim] x [dim, att] => [b, time, att]
-            uit += self.Wb  # => [b, time, att]
-            uit = tf.tanh(uit)  # => => [b, time, dim]
-            self.debug('uit shape', uit.get_shape())
-
-        ait = tf.einsum('ijk,kl->ijl', uit, self.U)  # [b, time, att] x [att, dim] => [b, time, dim]
-        ait += self.Ub  # => [b, time, att]
-        self.debug('ait shape', ait.get_shape())
-
-        a = tf.exp(ait)  # => [b, time, dim]
-        a /= tf.reduce_sum(a, axis=1, keepdims=True) + self.epsilon  # => [b, time, dim]
-        self.a = a
-
-        weighted_input = x * a  # [b, time, dim] x [b, time, dim] => [b, time, dim]
-        self.weighted_input = weighted_input
-        self.debug('wighted input shape', weighted_input.get_shape())
-        return tf.reduce_sum(weighted_input, axis=1)  # => [b, dim]
+        return self.__call__(x)
 
     def debug(self, *args):
         if self.debug:
