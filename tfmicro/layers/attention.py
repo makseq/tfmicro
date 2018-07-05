@@ -46,7 +46,7 @@ class AttentionWithContext(object):
             self.swap_memory = swap_memory
 
     def __call__(self, x):
-        with tf.variable_scope(self.name):
+        with tf.name_scope(self.name):
             # RNN attention
             if self.use_rnn:
                 uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
