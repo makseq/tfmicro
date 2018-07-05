@@ -336,61 +336,64 @@ class Model(Loader):
             model_number = sorted([int(m) for m in models])[-1]  # last item
             model_name = '/model-%i' % model_number
 
-<<<<<<< HEAD
-        if u'model.preload.exclude_var_names' in self.c:
-            var_list = []
-            for var_name in self.c['model.preload.exclude_var_names']:
-                var_list += [tv for tv in self.saver._var_list if var_name not in tv.name]
-            saver = tf.train.Saver(var_list)
-            print 'Variables excluded'
-        else:
-            saver = self.saver
-        saver.restore(self.sess, path + model_name)
-        print 'Variables loaded', path + model_name
-
-=======
-        if not hasattr(self, 'sess') or self.sess is None:
-            self.sess = tf.Session()
-
         # get variables from _train_model (current graph)
-        current_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-        if verbose:
-            print '\nVariables from current model:'
-            for i in sorted([v.name for v in current_vars]):
-                print i
+        current_vars = current_vars_all = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+
+        # exclude variables using config exclude_var_names
+        if 'model.preload.exclude_var_names' in self.c:
+            new = []
+            exclude_names = self.c['model.preload.exclude_var_names']
+            if not isinstance(exclude_names, list):
+                raise Exception('model.preload.exclude_var_names must be list of strings')
+
+            for v in current_vars_all:
+                exclude = [True for substr in exclude_names if substr in v.name]
+                if not exclude:
+                    new += [v]
+            current_vars = new
 
         # get variable names from checkpoint
         reader = pywrap_tensorflow.NewCheckpointReader(path + model_name)
         loading_names = sorted(reader.get_variable_to_shape_map())
-        if verbose:
-            print '\nVariables from loading model:'
-            for key in loading_names:
-                print key
 
         # find intersect of loading and current variables
         intersect_vars = []
         ignored_names = []
         for n in loading_names:
             included = False
+            # add var
             for v in current_vars:
                 if n == v.name.split(':')[0]:
                     intersect_vars += [v]
                     included = True
+            # ignore var
             if not included:
-                ignored_vars += [n]
+                ignored_names += [n]
 
         # print intersection
         if verbose:
+            if 'model.preload.exclude_var_names' in self.c:
+                print '\nExcluded variables:'
+                print self.c['model.preload.exclude_var_names']
+
+            print '\nVariables from current model - exclude_var_names (from config):'
+            for i in sorted([v.name for v in current_vars]):
+                print ' ', i
+
+            print '\nVariables from loading model:'
+            for key in loading_names:
+                print ' ', key
+
             print '\nIntersect variables:'
             for v in intersect_vars:
-                print v.name
+                print ' ', v.name
+
             print '\nIgnored variables:'
             for n in ignored_names:
-                print n
+                print ' ', n
             print
 
         saver = tf.train.Saver(var_list=intersect_vars)
         saver.restore(self.sess, path + model_name)
-        print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars)), 'variables loaded', path + model_name, '\n'
->>>>>>> 0f490f6790e6d637f974746a15ef501140157937
+        print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name, '\n'
         return
