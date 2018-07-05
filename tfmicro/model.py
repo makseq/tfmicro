@@ -339,7 +339,7 @@ class Model(Loader):
         if not hasattr(self, 'sess') or self.sess is None:
             self.sess = tf.Session()
 
-        # get variables from _train_model
+        # get variables from _train_model (current graph)
         current_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         if verbose:
             print '\nVariables from current model:'
