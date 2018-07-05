@@ -23,7 +23,7 @@ import tensorflow as tf
 class Loader(object):
 
     @classmethod
-    def load(cls, path, forced_config=None):
+    def load(cls, path, forced_config=None, print_vars=False):
         # prepare config
         if forced_config is not None:
             c = forced_config
@@ -62,6 +62,11 @@ class Loader(object):
                 print 'No graph loaded! Some errors occur:', graph_path
                 print e.__repr__()
             model.saver = tf.train.Saver()
+
+        # print variables from loaded model
+        if print_vars:
+            for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+                print i
 
         model.saver.restore(model.sess, path + model_name)
         print 'Variables loaded', path + model_name

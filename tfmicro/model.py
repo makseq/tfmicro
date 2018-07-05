@@ -17,17 +17,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import json
 import os
+import gc
 import sys
 import time
 import numpy as np
 import tensorflow as tf
-import gc
+from tensorflow.python import debug as tf_debug
+from tensorflow.python import pywrap_tensorflow
 
 import threadgen
-from tensorflow.python import debug as tf_debug
+import keyboard
 from model_loader import Loader
 from model_predictor import Predictor
-import keyboard
+
 
 # noinspection PyAttributeOutsideInit
 class Model(Loader):
@@ -319,7 +321,10 @@ class Model(Loader):
         model._reset_history()
         return model
 
-    def load_weights(self, path):
+    def load_weights(self, path, verbose=False):
+        if 'model.preload.verbose' in self.c:
+            verbose = self.c['model.preload.verbose']
+
         if os.path.isdir(path):  # path is dir
             c = json.load(open(path + '/config.json'))
         else:  # path is filename
@@ -331,6 +336,7 @@ class Model(Loader):
             model_number = sorted([int(m) for m in models])[-1]  # last item
             model_name = '/model-%i' % model_number
 
+<<<<<<< HEAD
         if u'model.preload.exclude_var_names' in self.c:
             var_list = []
             for var_name in self.c['model.preload.exclude_var_names']:
@@ -342,4 +348,49 @@ class Model(Loader):
         saver.restore(self.sess, path + model_name)
         print 'Variables loaded', path + model_name
 
+=======
+        if not hasattr(self, 'sess') or self.sess is None:
+            self.sess = tf.Session()
+
+        # get variables from _train_model
+        current_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        if verbose:
+            print '\nVariables from current model:'
+            for i in sorted([v.name for v in current_vars]):
+                print i
+
+        # get variable names from checkpoint
+        reader = pywrap_tensorflow.NewCheckpointReader(path + model_name)
+        loading_names = sorted(reader.get_variable_to_shape_map())
+        if verbose:
+            print '\nVariables from loading model:'
+            for key in loading_names:
+                print key
+
+        # find intersect of loading and current variables
+        intersect_vars = []
+        ignored_names = []
+        for n in loading_names:
+            included = False
+            for v in current_vars:
+                if n == v.name.split(':')[0]:
+                    intersect_vars += [v]
+                    included = True
+            if not included:
+                ignored_vars += [n]
+
+        # print intersection
+        if verbose:
+            print '\nIntersect variables:'
+            for v in intersect_vars:
+                print v.name
+            print '\nIgnored variables:'
+            for n in ignored_names:
+                print n
+            print
+
+        saver = tf.train.Saver(var_list=intersect_vars)
+        saver.restore(self.sess, path + model_name)
+        print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars)), 'variables loaded', path + model_name, '\n'
+>>>>>>> 0f490f6790e6d637f974746a15ef501140157937
         return

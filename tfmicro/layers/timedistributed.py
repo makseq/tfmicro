@@ -34,7 +34,7 @@ class TimeDistributed:
             self.biases = tf.Variable(init([output_dim]))
 
     def __call__(self, x):
-        with tf.variable_scope(self.name):
+        with tf.name_scope(self.name):
             # [b, t, units] x [input_dim, output_dim] = [b, t, output_dim]
             self.layer = tf.einsum('ijk,km->ijm', x, self.weights)
             if self.use_biases:
