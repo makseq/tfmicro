@@ -322,6 +322,13 @@ class Model(Loader):
         return model
 
     def load_weights(self, path, verbose=False):
+        """ Load weights to current graph. 
+        It loads only variables with the same names and shapes from the checkpoint. 
+        
+        :param path: path to model 
+        :param verbose: print debug info if True
+        :return: None
+        """
         if 'model.preload.verbose' in self.c:
             verbose = self.c['model.preload.verbose']
 
@@ -354,6 +361,7 @@ class Model(Loader):
 
         # get variable names from checkpoint
         reader = pywrap_tensorflow.NewCheckpointReader(path + model_name)
+        loading_shapes = reader.get_variable_to_shape_map()
         loading_names = sorted(reader.get_variable_to_shape_map())
 
         # find intersect of loading and current variables
@@ -363,7 +371,7 @@ class Model(Loader):
             included = False
             # add var
             for v in current_vars:
-                if n == v.name.split(':')[0]:
+                if n == v.name.split(':')[0] and v.shape == loading_shapes[n]:
                     intersect_vars += [v]
                     included = True
             # ignore var
