@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+
+'''
+ This is template only, but NOT WORKING example. 
+'''
+
 import os
 import testarium
 

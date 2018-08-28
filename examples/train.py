@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+
+'''
+ This is template only, but NOT WORKING example. 
+'''
+
 # cuda export: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
 # -----------------------------------------------------------------------------
 import os

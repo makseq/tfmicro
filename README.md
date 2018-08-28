@@ -1,2 +1,2 @@
-# Microtf is an micro framework for tensorflow training.
+# tfMicro is an micro framework for Tensorflow training. Easy and native.
 
