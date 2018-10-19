@@ -1,9 +1,6 @@
-import setuptools_scm
 import subprocess
 from distutils.core import setup
 from setuptools import find_packages
-# from distutils.core import setup
-# from setuptools import find_packages
 
 # take version from git
 desc = subprocess.check_output('git describe --long --tags --always --dirty --broken', shell=True).strip()
