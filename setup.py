@@ -1,3 +1,4 @@
+import setuptools_scm
 import subprocess
 from distutils.core import setup
 from setuptools import find_packages
