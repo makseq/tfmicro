@@ -24,4 +24,4 @@ import model_predictor
 import threadgen
 import workers
 
-__version__ = '0.1'
+# __version__ = '0.1'
