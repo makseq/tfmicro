@@ -23,7 +23,8 @@ import tensorflow as tf
 
 class AttentionWithContext(object):
 
-    def __init__(self, shape, units, keep_prob=None, name='attention_context', use_rnn=True, swap_memory=False, verbose=False):
+    def __init__(self, shape, units, is_training, keep_prob=None, name='attention_context',
+                 use_rnn=True, swap_memory=False, verbose=False):
         with tf.variable_scope(name):
             init = tf.glorot_uniform_initializer()
             self.shape = shape
@@ -32,6 +33,7 @@ class AttentionWithContext(object):
             self.verbose = verbose
             self.units = units
             self.keep_prob = keep_prob
+            self.is_training = is_training
             dim = int(shape[-1]) if isinstance(shape[-1], tf.Dimension) else shape[-1]
 
             self.use_rnn = use_rnn
@@ -51,7 +53,7 @@ class AttentionWithContext(object):
             if self.use_rnn:
                 uit, _ = tf.nn.dynamic_rnn(self.rnn_cell, x, dtype=tf.float32, swap_memory=self.swap_memory)  # => [b*num_files, t, units[0]]
                 if self.keep_prob is not None:
-                    uit = tf.nn.dropout(uit, keep_prob=self.keep_prob)
+                    uit = tf.layers.dropout(uit, rate=1.0-self.keep_prob, training=self.is_training)
                     self.debug('dropout enabled')
 
             # W simple attention
