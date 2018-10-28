@@ -38,7 +38,10 @@ class AttentionWithContext(object):
 
             self.use_rnn = use_rnn
             if use_rnn:
-                self.rnn_cell = tf.nn.rnn_cell.GRUCell(units)
+                if isinstance(use_rnn, bool):
+                    self.rnn_cell = tf.nn.rnn_cell.GRUCell(units)
+                else:
+                    self.rnn_cell = use_rnn
             else:
                 self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
                 self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
