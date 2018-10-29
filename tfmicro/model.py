@@ -100,11 +100,6 @@ class Model(Loader):
         self._reset_history()
         self.tensorboard_root = './tensorboard/'
 
-    def __del__(self):
-        print '----->>>> CLOSING'
-        self.train_writer.close()
-        self.valid_writer.close()
-
     def add_indicator(self, reference, text):
         self.indicators += [{'reference': reference, 'text': text}]
 
