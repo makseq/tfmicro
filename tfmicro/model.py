@@ -96,6 +96,7 @@ class Model(Loader):
         self.sess = None
         self.saver = None
         self._reset_history()
+        self.tensorboard_root = './tensorboard/'
 
     def add_indicator(self, reference, text):
         self.indicators += [{'reference': reference, 'text': text}]
@@ -231,7 +232,7 @@ class Model(Loader):
         self.sess.run(tf.global_variables_initializer())
 
         # log writer & model saver
-        self.tensorboard_subdir = './tensorboard/' + tensorboard_subdir
+        self.tensorboard_subdir = os.path.join(self.tensorboard_root, tensorboard_subdir)
         self.train_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/train')
         self.valid_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/valid')
         self.train_writer.add_graph(self.sess.graph)
