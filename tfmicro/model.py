@@ -235,8 +235,10 @@ class Model(Loader):
 
         # log writer & model saver
         self.tensorboard_subdir = os.path.join(self.tensorboard_root, tensorboard_subdir)
-        with tf.summary.FileWriter(self.tensorboard_subdir + '/train') as  self.train_writer,\
-            tf.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
+        self.train_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/train')
+        self.valid_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/valid')
+
+        try:
 
             self.train_writer.add_graph(self.sess.graph)
             if self.saver is None:
@@ -299,6 +301,16 @@ class Model(Loader):
             [call.on_finish() for call in self.callbacks]  # self.callbacks
             gc.collect()
             return self
+
+        except Exception as e:
+            raise e
+
+        finally:
+            print '\n\n! CLOSED!\n\n'
+            self.train_writer.flush()
+            self.valid_writer.flush()
+            self.train_writer.close()
+            self.valid_writer.close()
 
     def get_predictor(self, predictor_cls):
         if self.predictor is None:
