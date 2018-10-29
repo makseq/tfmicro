@@ -22,9 +22,9 @@ try:
     import termios
     import tty
     no_keyboard = False
-except:
+except Exception as e:
     no_keyboard = True
-    print '!!! Warning: keyboard callbacks is not supported!'
+    print '! warning: keyboard callbacks is not supported:', e
 
 import threading
 
