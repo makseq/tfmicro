@@ -95,8 +95,15 @@ class Model(Loader):
         self.indicators = []
         self.sess = None
         self.saver = None
+        self.train_writer = None
+        self.valid_writer = None
         self._reset_history()
         self.tensorboard_root = './tensorboard/'
+
+    def __del__(self):
+        print '----->>>> CLOSING'
+        self.train_writer.close()
+        self.valid_writer.close()
 
     def add_indicator(self, reference, text):
         self.indicators += [{'reference': reference, 'text': text}]
@@ -233,69 +240,70 @@ class Model(Loader):
 
         # log writer & model saver
         self.tensorboard_subdir = os.path.join(self.tensorboard_root, tensorboard_subdir)
-        self.train_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/train')
-        self.valid_writer = tf.summary.FileWriter(self.tensorboard_subdir + '/valid')
-        self.train_writer.add_graph(self.sess.graph)
-        if self.saver is None:
-            self.saver = tf.train.Saver()
+        with tf.summary.FileWriter(self.tensorboard_subdir + '/train') as  self.train_writer,\
+            tf.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
 
-        # load weights if we want to continue training
-        if 'model.preload' in c and c['model.preload']:
-            self.load_weights(c['model.preload'])
+            self.train_writer.add_graph(self.sess.graph)
+            if self.saver is None:
+                self.saver = tf.train.Saver()
 
-        # summary
-        self.cost_summary = tf.summary.scalar("cost", self.cost)
+            # load weights if we want to continue training
+            if 'model.preload' in c and c['model.preload']:
+                self.load_weights(c['model.preload'])
 
-        self._reset_history()
-        self.epoch, self.step, train_cost, test_cost, restart = 1, 0, 0, 0, True
-        self.epoch_time_start = time.time()
-        self.train_costs, self.test_costs = [], []
-        [call.set_model(self) for call in self.callbacks]  # set model to self.callbacks
-        [call.set_config(c) for call in self.callbacks]  # set config to self.callbacks
-        [call.on_start() for call in self.callbacks]  # self.callbacks
-        print ' Train model'
+            # summary
+            self.cost_summary = tf.summary.scalar("cost", self.cost)
 
-        while self.epoch <= self.epochs:  # train cycle, we start from 1, so use <=
-            ' epoch begin '
-            if restart:
-                restart = False
-                self.step = 0
-                self.info('\n  Epoch %i/%i\n' % (self.epoch, self.epochs))
-                [call.on_epoch_begin() for call in self.callbacks]  # self.callbacks
+            self._reset_history()
+            self.epoch, self.step, train_cost, test_cost, restart = 1, 0, 0, 0, True
+            self.epoch_time_start = time.time()
+            self.train_costs, self.test_costs = [], []
+            [call.set_model(self) for call in self.callbacks]  # set model to self.callbacks
+            [call.set_config(c) for call in self.callbacks]  # set config to self.callbacks
+            [call.on_start() for call in self.callbacks]  # self.callbacks
+            print ' Train model'
 
-            ' step begin '
-            [call.on_step_begin() for call in self.callbacks]
+            while self.epoch <= self.epochs:  # train cycle, we start from 1, so use <=
+                ' epoch begin '
+                if restart:
+                    restart = False
+                    self.step = 0
+                    self.info('\n  Epoch %i/%i\n' % (self.epoch, self.epochs))
+                    [call.on_epoch_begin() for call in self.callbacks]  # self.callbacks
 
-            self.train_step()
-            self.train_writer.flush()  # write summary to disk right now
+                ' step begin '
+                [call.on_step_begin() for call in self.callbacks]
 
-            ' step end '
-            [call.on_step_end() for call in self.callbacks]
-            self.step += 1
-            self.progress(self.step)  # print progress
+                self.train_step()
+                self.train_writer.flush()  # write summary to disk right now
 
-            ' epoch end '
-            if self.step >= self.data.steps_per_epoch or self.stop_training_now:
+                ' step end '
+                [call.on_step_end() for call in self.callbacks]
+                self.step += 1
+                self.progress(self.step)  # print progress
 
-                ' validation pass '
-                self.run_validation()
+                ' epoch end '
+                if self.step >= self.data.steps_per_epoch or self.stop_training_now:
 
-                # self.callbacks: on epoch end
-                [call.on_epoch_end() for call in self.callbacks]
-                sys.stdout.write('\n')
+                    ' validation pass '
+                    self.run_validation()
 
-                # reset & stop check
-                restart = True
-                self.epoch += 1
-                self.epoch_time_start = time.time()
-                if self.stop_training or self.stop_training_now:
-                    break  # break main loop
+                    # self.callbacks: on epoch end
+                    [call.on_epoch_end() for call in self.callbacks]
+                    sys.stdout.write('\n')
 
-        self.train_generator.stop()
-        self.valid_generator.stop()
-        [call.on_finish() for call in self.callbacks]  # self.callbacks
-        gc.collect()
-        return self
+                    # reset & stop check
+                    restart = True
+                    self.epoch += 1
+                    self.epoch_time_start = time.time()
+                    if self.stop_training or self.stop_training_now:
+                        break  # break main loop
+
+            self.train_generator.stop()
+            self.valid_generator.stop()
+            [call.on_finish() for call in self.callbacks]  # self.callbacks
+            gc.collect()
+            return self
 
     def get_predictor(self, predictor_cls):
         if self.predictor is None:
