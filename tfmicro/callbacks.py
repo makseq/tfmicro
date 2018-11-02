@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import sys
+import traceback
 import numpy as np
 import tensorflow as tf
 import keyboard
@@ -279,3 +280,118 @@ class ReducingLearningRate(Callback):
         return self.cooldown_counter > 0
 
 
+# Testarium callback for commits during training
+class Testarium(Callback):
+    """
+    Commits will be scored and saved after each epoch. 
+    You can find your commits in testarium web & log right after the first epoch.  
+    """
+    def __init__(self, commit, score_func):
+        self.commit = commit
+        self.score_func = score_func
+        super(Testarium, self).__init__()
+
+    def on_epoch_end(self):
+        try:
+            desc = self.score_func(self.commit)
+            self.commit.desc.update(desc)
+        except Exception:
+            self.model.info('\n\n! error in user score function for tfmicro.callbacks.Testarium: '
+                            'your score function must be calculated during training')
+            self.model.info(traceback.format_exc())
+
+        self.commit.Save()
+
+
+# Accuracy callback for logits with labels
+class AccuracyCallback(Callback):
+    def __init__(self):
+        self.logits = None
+        self.labels = None
+        super(Callback, self).__init__()
+
+    def on_epoch_begin(self):
+        self.logits = []
+        self.labels = []
+
+    def on_validation_step_end(self):
+        self.logits.append(self.model.logits)
+        self.labels.append(self.model.labels)
+
+    def on_epoch_end(self):
+        predicted_labels = np.argmax(np.vstack(self.logits), axis=1)
+        labels = np.hstack(self.labels)
+        acc = np.mean(np.equal(predicted_labels, labels))
+
+        self.model.info('\n   > Accuracy: %0.2f\n  ' % (acc * 100))
+        self.model.history['accuracy'] += [acc]
+
+        value = summary_pb2.Summary.Value(tag="accuracy", simple_value=acc)
+        global_step = self.model.epoch*self.model.data.validation_steps + self.model.valid_step
+        self.model.valid_writer.add_summary(summary_pb2.Summary(value=[value]), global_step=global_step)
+        self.model.valid_writer.flush()
+
+
+# False Alarm & False Reject (FAFR) callback
+class FafrCallback(Callback):
+    def __init__(self, do_l2_norm=True, n_proc=None):
+        self.embeddings = None
+        self.labels = None
+        self.do_l2_norm = do_l2_norm
+        self.n_proc = n_proc
+        self.metric = None
+
+        # testarium functions import on the fly
+        t = __import__('testarium')
+        self.fafr_parallel = t.score.fafr.fafr_parallel
+        self.get_pos_neg = t.score.fafr.get_pos_neg
+
+        # check
+        if do_l2_norm and self.metric == 'hamming':
+            self.model.info('\n! warning: unit lenth (l2) norm enabled but hamming distance in use')
+
+        super(Callback, self).__init__()
+
+    def on_start(self):
+        self.model.history['thr'] = []
+        self.model.history['eer'] = []
+        self.model.history['minDCF'] = []
+
+        # read config because it available
+        self.metric = self.config.get('model.fafr.metric', 'cos')
+        self.n_proc = self.config.get('data.n_proc', 8) if self.n_proc is None else self.n_proc
+
+    def on_epoch_begin(self):
+        self.embeddings = []
+        self.labels = []
+
+    def on_validation_step_end(self):
+        self.embeddings.append(self.model.embeddings)
+        self.labels.append(self.model.labels)
+
+    def on_epoch_end(self):
+        embeddings = np.vstack(self.embeddings)
+        labels = np.hstack(self.labels)
+
+        # apply l2 norm (unit len)
+        if self.do_l2_norm:
+            embeddings /= np.linalg.norm(embeddings, axis=-1, keepdims=True)
+
+        # split scores for positives & negatives
+        pos, neg = self.get_pos_neg(embeddings, embeddings, labels, labels, metric=self.metric)
+
+        # build FAFR plots
+        FA, FR, Thr = self.fafr_parallel(pos, neg, 1000, self.n_proc)
+        thr = Thr[np.argmin(np.abs(FA - FR))]
+        eer = FA[np.argmin(np.abs(FA - FR))]
+        minDCF = np.min(100 * FA + FR)
+        self.model.info('\n   > EER: %0.3f > minDCF: %0.3f > threshold: %0.2f\n  ' % (eer * 100, minDCF, thr), False)
+
+        self.model.history['eer'] += [eer]
+        self.model.history['minDCF'] += [minDCF]
+        self.model.history['thr'] += [thr]
+
+        value = summary_pb2.Summary.Value(tag="eer", simple_value=eer)
+        global_step = self.model.epoch*self.model.data.validation_steps + self.model.valid_step
+        self.model.valid_writer.add_summary(summary_pb2.Summary(value=[value]), global_step=global_step)
+        self.model.valid_writer.flush()
