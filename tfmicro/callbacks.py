@@ -1,6 +1,6 @@
 """
 TFMicro
-Copyright (C) 2018 Maxim Tkachenko
+Copyright (C) 2018 Maxim Tkachenko, Alexander Yamshinin
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ import sys
 import traceback
 import numpy as np
 import tensorflow as tf
+from tensorflow.core.framework import summary_pb2
 import keyboard
 
 stop_training = False
@@ -309,6 +310,9 @@ class AccuracyCallback(Callback):
         self.logits = None
         self.labels = None
         super(Callback, self).__init__()
+
+    def on_start(self):
+        self.model.history['accuracy'] = []
 
     def on_epoch_begin(self):
         self.logits = []
