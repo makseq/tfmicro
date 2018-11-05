@@ -344,6 +344,7 @@ class FafrCallback(Callback):
         self.do_l2_norm = do_l2_norm
         self.n_proc = n_proc
         self.metric = None
+        self.neg = self.pos = None
 
         # testarium functions import on the fly
         t = __import__('testarium')
@@ -382,13 +383,14 @@ class FafrCallback(Callback):
             embeddings /= np.linalg.norm(embeddings, axis=-1, keepdims=True)
 
         # split scores for positives & negatives
-        pos, neg = self.get_pos_neg(embeddings, embeddings, labels, labels, metric=self.metric)
+        self.pos, self.neg = self.get_pos_neg(embeddings, embeddings, labels, labels, metric=self.metric)
 
         # build FAFR plots
-        FA, FR, Thr = self.fafr_parallel(pos, neg, 1000, self.n_proc)
+        FA, FR, Thr = self.fafr_parallel(self.pos, self.neg, 1000, self.n_proc)
         thr = Thr[np.argmin(np.abs(FA - FR))]
         eer = FA[np.argmin(np.abs(FA - FR))]
         minDCF = np.min(100 * FA + FR)
+        self.FA, self.FR, self.Thr, self.eer_thr, self.eer, self.minDCF = FA, FR, Thr, thr, eer, minDCF
         self.model.info('\n   > EER: %0.3f > minDCF: %0.3f > threshold: %0.2f\n  ' % (eer * 100, minDCF, thr), False)
 
         self.model.history['eer'] += [eer]
