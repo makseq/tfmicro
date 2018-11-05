@@ -235,8 +235,8 @@ class Model(Loader):
 
         # log writer & model saver
         self.tensorboard_subdir = os.path.join(self.tensorboard_root, tensorboard_subdir)
-        with tf.summary.FileWriter(self.tensorboard_subdir + '/train') as  self.train_writer,\
-            tf.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
+        with tf.summary.FileWriter(self.tensorboard_subdir + '/train') as self.train_writer, \
+             tf.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
 
             self.train_writer.add_graph(self.sess.graph)
             if self.saver is None:
