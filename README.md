@@ -2,6 +2,7 @@
 TfMicro is a micro framework for Tensorflow training similar to Keras but easy and native to Tensorflow. 
 Focus only on creating your TF model. All the rest TfMicro will be done for you. 
 
+# Features
 * Multiprocessing data template: inherit from tfmicro.Data class to feed your data into model with multiprocessing.
 * Callbacks
   * ModelCheckpoint: to save models by monitor value
@@ -19,10 +20,12 @@ Focus only on creating your TF model. All the rest TfMicro will be done for you.
 * Production code templates: training and inference are strong separated
 
 
-# Usage
+# Install
 ```
 git clone git@github.com:makseq/tfmicro.git
 cd tfmicro
 python setup.py develop
 ```
 
+# Usage 
+See example folder. 
