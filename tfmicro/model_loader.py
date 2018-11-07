@@ -66,7 +66,7 @@ class Loader(object):
             if '.' in key:  # go deeper
                 split = key.split('.')
                 if len(split) > 2:
-                    raise Exception('')
+                    raise Exception('Only two level config supported: ' + split)
 
                 key1, key2 = split[0], split[1]
                 root_obj = getattr(cfg, key1)
