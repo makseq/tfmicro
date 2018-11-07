@@ -20,7 +20,18 @@ import os
 import tensorflow as tf
 
 
+class LoaderException(Exception):
+    pass
+
+
 class Loader(object):
+
+    @staticmethod
+    def check_deprecated(config):
+        names = ['allow_growth', 'use_gpu']
+        for name in names:
+            if name in config:
+                print "\n! warning: '%s' in config is deprecated. Use 'tf.config.%s' instead." % name
 
     @classmethod
     def load(cls, path, forced_config=None, print_vars=False):
@@ -34,25 +45,44 @@ class Loader(object):
             else:  # path is filename
                 c = json.load(open(os.path.dirname(path) + '/config.json'))
 
+        # init & reset
         model = cls(c)
         tf.reset_default_graph()
         tf.set_random_seed(1234)
 
-        use_gpu = c['use_gpu'] if 'use_gpu' not in os.environ else os.environ['use_gpu']
-        allow_growth = c['allow_growth'] if 'allow_growth' in c else True
+        # tensorflow config
+        use_gpu = os.environ.get('use_gpu', c.get('use_gpu', c.get('tf.config.use_gpu')))
+        cfg = tf.ConfigProto(device_count={'GPU': use_gpu})
 
-        config_proto = tf.ConfigProto(device_count={'GPU': c['use_gpu']})
-        config_proto.gpu_options.allow_growth = allow_growth
-        model.sess = tf.Session(config=config_proto)
+        # scan config for tf config params
+        opts = {opt.replace('tf.config.', ''): c[opt] for opt in c if opt.startswith('tf.config.')}
+        del opts['use_gpu']  # it's not standard {key: value} parameter
 
+        # apply params to config proto
+        for key, value in opts.items():
+            if '.' in key:  # go deeper
+                split = key.split('.')
+                if len(split) > 2:
+                    raise Exception('')
+
+                key1, key2 = split[0], split[1]
+                root_obj = getattr(cfg, key1)
+                setattr(root_obj, key2, value)
+            else:
+                setattr(cfg, key, value)
+
+        model.sess = tf.Session(config=cfg)
+
+        # get model filename
         model_name = ''
         if os.path.isdir(path):  # take the last model
             models = set([m.split('.')[0].split('-')[1] for m in os.listdir(path) if 'model-' in m])  # get all models
-            model_number = sorted([int(m) for m in models])[-1]  # last item
+            model_number = sorted([int(m) for m in models])[-1]  # take last model from list
             model_name = '/model-%i' % model_number
+        graph_path = path + model_name + '.meta'
 
+        # import meta graph
         try:
-            graph_path = path + model_name + '.meta'
             model.saver = tf.train.import_meta_graph(graph_path, clear_devices=True)
             print 'Graph loaded', graph_path
         except Exception as e:
@@ -68,8 +98,11 @@ class Loader(object):
             for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
                 print i
 
+        # load weights
         model.saver.restore(model.sess, path + model_name)
         print 'Variables loaded', path + model_name
         model.c = c
+
+        cls.check_deprecated(c)
         return model
 
