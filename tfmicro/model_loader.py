@@ -28,10 +28,11 @@ class Loader(object):
 
     @staticmethod
     def check_deprecated(config):
-        names = ['allow_growth', 'use_gpu']
-        for name in names:
-            if name in config:
-                print "\n! warning: '%s' in config is deprecated. Use 'tf.config.%s' instead." % name
+        if 'use_gpu' in config:
+            print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
+        if 'allow_growth' in config:
+            print "\n! warning: 'allow_growth' in config is deprecated. " \
+                  "Use 'tf.config.gpu_options.allow_growth' instead."
 
     @classmethod
     def load(cls, path, forced_config=None, print_vars=False):
