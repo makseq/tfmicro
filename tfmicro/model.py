@@ -227,9 +227,10 @@ class Model(Loader):
         self._train_model(data)
 
         # session init & tf_debug
-        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': self.c['use_gpu']}))
-        if 'tf_debug.enabled' in self.c and self.c['tf_debug.enabled']:
-            port = self.c['tf_debug.port'] if 'tf_debug.port' in self.c else '6064'
+        use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
+        self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': use_gpu}))
+        if self.c.get('tf.debug.enabled', False):
+            port = self.c.get('tf.debug.port', '6064')
             self.sess = tf_debug.TensorBoardDebugWrapperSession(self.sess, 'localhost:'+port)
         self.sess.run(tf.global_variables_initializer())
 
@@ -409,3 +410,12 @@ class Model(Loader):
         saver.restore(self.sess, path + model_name)
         print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name, '\n'
         return
+
+    @staticmethod
+    def check_deprecated(config):
+        if 'use_gpu' in config:
+            print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
+
+        if 'allow_growth' in config:
+            print "\n! warning: 'allow_growth' in config is deprecated. " \
+                  "Use 'tf.config.gpu_options.allow_growth' instead."
