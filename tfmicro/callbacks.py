@@ -313,8 +313,10 @@ class AccuracyCallback(Callback):
 
     def on_start(self):
         self.model.history['accuracy'] = []
-        assert hasattr(self.model, 'labels'), 'Model must have model.labels for AccuracyCallback'
-        assert hasattr(self.model, 'logits'), 'Model must have model.logits for AccuracyCallback'
+        if not hasattr(self.model, 'labels'):
+            print '! warning: model must have model.labels for AccuracyCallback'
+        if not hasattr(self.model, 'logits'):
+            print '! warning: model must have model.logits for AccuracyCallback'
 
     def on_epoch_begin(self):
         self.logits = []
@@ -368,8 +370,10 @@ class FafrCallback(Callback):
         self.metric = self.config.get('model.fafr.metric', 'cos')
         self.n_proc = self.config.get('data.n_proc', 8) if self.n_proc is None else self.n_proc
 
-        assert hasattr(self.model, 'labels'), 'Model must have model.labels for FafrCallback'
-        assert hasattr(self.model, 'embeddings'), 'Model must have model.embeddings for FafrCallback'
+        if not hasattr(self.model, 'labels'):
+            print '! warning: model must have model.labels for FafrCallback'
+        if not hasattr(self.model, 'embeddings'):
+            print '! warning: model must have model.embeddings for FafrCallback'
 
     def on_epoch_begin(self):
         self.embeddings = []
