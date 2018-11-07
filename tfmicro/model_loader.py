@@ -30,6 +30,7 @@ class Loader(object):
     def check_deprecated(config):
         if 'use_gpu' in config:
             print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
+
         if 'allow_growth' in config:
             print "\n! warning: 'allow_growth' in config is deprecated. " \
                   "Use 'tf.config.gpu_options.allow_growth' instead."
@@ -52,12 +53,13 @@ class Loader(object):
         tf.set_random_seed(1234)
 
         # tensorflow config
-        use_gpu = os.environ.get('use_gpu', c.get('use_gpu', c.get('tf.config.use_gpu')))
+        use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
         cfg = tf.ConfigProto(device_count={'GPU': use_gpu})
 
         # scan config for tf config params
         opts = {opt.replace('tf.config.', ''): c[opt] for opt in c if opt.startswith('tf.config.')}
-        del opts['use_gpu']  # it's not standard {key: value} parameter
+        if 'use_gpu' in opts:
+            del opts['use_gpu']  # it's not standard {key: value} parameter
 
         # apply params to config proto
         for key, value in opts.items():
