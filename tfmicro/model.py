@@ -411,11 +411,47 @@ class Model(Loader):
         print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name, '\n'
         return
 
-    @staticmethod
-    def check_deprecated(config):
+    def summary_image(self, image, name):
+        """ Attach a image of a Tensor (for TensorBoard visualization)
+        
+        :param image: image tensor with shape rank is 2 or 3  
+        :param name: name for tensorboard
+        """
+        if len(image.get_shape()) == 2:
+            image = tf.expand_dims(image, -1)
+            image = tf.expand_dims(image, 0)
+        elif len(image.get_shape()) == 3:
+            image = tf.expand_dims(image, -1)
+
+        self.summaries.append(tf.summary.image(name, image))
+
+    def summary_tensor(self, tensor, name):
+        """ Attach mean, std, max, min, histogram of summaries to a Tensor for tensor (for TensorBoard visualization).
+         
+        :param tensor: tensor
+        :param name: name for tensorboard
+        """
+        with tf.name_scope(name):
+            mean = tf.reduce_mean(tensor)
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(tensor - mean)))
+            self.summaries.append(tf.summary.scalar('mean', mean))
+            self.summaries.append(tf.summary.scalar('stddev', stddev))
+            self.summaries.append(tf.summary.scalar('max', tf.reduce_max(tensor)))
+            self.summaries.append(tf.summary.scalar('min', tf.reduce_min(tensor)))
+            self.summaries.append(tf.summary.histogram('histogram', tensor))
+
+    def check_deprecated(self, config):
         if 'use_gpu' in config:
             print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
 
         if 'allow_growth' in config:
             print "\n! warning: 'allow_growth' in config is deprecated. " \
                   "Use 'tf.config.gpu_options.allow_growth' instead."
+
+        if hasattr(self, 'variable_image'):
+            print "\n! warning: you use 'variable_image' in your model, " \
+                  "but tfmicro has built-in method 'tfmicro.Model.summary_image'"
+
+        if hasattr(self, 'variable_summaries'):
+            print "\n! warning: you use 'variable_summaries' in your model, " \
+                  "but tfmicro has built-in method 'tfmicro.Model.summary_tensor'"

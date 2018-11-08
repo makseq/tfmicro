@@ -121,9 +121,7 @@ class KeyboardStop(Callback):
         keyboard.listen_key('Q', on_resume)
         keyboard.start()
 
-        print "! Note: press 'q' to stop training"
-        print "! Note: press 'Q' to resume training"
-        print "! Note: press 'q' twice to stop training after the step"
+        print "! note: press 'q' to stop training; 'Q' to resume; twice 'q' to stop after step"
         super(Callback, self).__init__()
 
     def on_step_end(self):
@@ -169,7 +167,7 @@ class KeyboardValidation(Callback):
         keyboard.listen_key('v', validation)
         keyboard.start()
 
-        print "! Note: press 'v' to run validation"
+        print "! note: press 'v' to run validation"
         super(Callback, self).__init__()
 
     def on_step_end(self):
@@ -200,7 +198,7 @@ class KeyboardLearningRate(Callback):
         keyboard.listen_key('=', increase_lr)
         keyboard.start()
 
-        print "! Note: press '+/=' to increase learning rate, '-' to decrease"
+        print "! note: press '+/=' to increase learning rate, '-' to decrease"
         super(Callback, self).__init__()
 
 
