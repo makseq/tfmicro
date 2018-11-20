@@ -72,7 +72,7 @@ class Workers:
 
     def task(self, q_in, q_out):
         # check if 'mode' argument in evaluate_batch_prepare implementation
-        if 'mode' in a.__code__.co_varnames:
+        if 'mode' in self.data.evaluate_batch_prepare.__code__.co_varnames:
             prepared = self.data.evaluate_batch_prepare(mode=self.mode)
         else:
             prepared = self.data.evaluate_batch_prepare()
