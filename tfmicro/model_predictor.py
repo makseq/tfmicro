@@ -51,18 +51,18 @@ class Predictor(Loader):
         """
 
         # split long features into parts by timesteps
-        parts = [feats[i:i + feature_steps] for i in xrange(0, len(feats), feature_steps)]  # N x timesteps x dim
+        parts = [feats[i:i + feature_steps] for i in range(0, len(feats), feature_steps)]  # N x timesteps x dim
         parts = np.array(parts)
         dim = feats.shape[-1]
         d_parts = []
 
         # reformat batch with created parts
-        for b in xrange(0, len(parts), batch_size):
+        for b in range(0, len(parts), batch_size):
             # prepare batch
             p = parts[b:b + batch_size]  # new batch: len(p), timesteps, ?
             x = np.zeros((len(p), feature_steps, dim))
 
-            for i in xrange(len(p)):  # timesteps can be variable in parts
+            for i in range(len(p)):  # timesteps can be variable in parts
                 x[i, :] = zero
                 x[i, 0:len(p[i]), :] = p[i]
 

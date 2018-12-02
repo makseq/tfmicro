@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
 import json
 import os
 import tensorflow as tf
@@ -29,11 +30,11 @@ class Loader(object):
     @staticmethod
     def check_deprecated(config):
         if 'use_gpu' in config:
-            print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
+            print("\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead.")
 
         if 'allow_growth' in config:
-            print "\n! warning: 'allow_growth' in config is deprecated. " \
-                  "Use 'tf.config.gpu_options.allow_growth' instead."
+            print("\n! warning: 'allow_growth' in config is deprecated. "
+                  "Use 'tf.config.gpu_options.allow_growth' instead.")
 
     @classmethod
     def load(cls, path, forced_config=None, print_vars=False):
@@ -87,23 +88,23 @@ class Loader(object):
         # import meta graph
         try:
             model.saver = tf.train.import_meta_graph(graph_path, clear_devices=True)
-            print 'Graph loaded', graph_path
+            print('Graph loaded', graph_path)
         except Exception as e:
             if not os.path.exists(graph_path):
-                print "No graph loaded! Path doesn't exist:", graph_path
+                print("No graph loaded! Path doesn't exist:", graph_path)
             else:
-                print 'No graph loaded! Some errors occur:', graph_path
-                print e.__repr__()
+                print('No graph loaded! Some errors occur:', graph_path)
+                print(e.__repr__())
             model.saver = tf.train.Saver()
 
         # print variables from loaded model
         if print_vars:
             for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
-                print i
+                print(i)
 
         # load weights
         model.saver.restore(model.sess, path + model_name)
-        print 'Variables loaded', path + model_name
+        print('Variables loaded', path + model_name)
         model.c = c
 
         cls.check_deprecated(c)
