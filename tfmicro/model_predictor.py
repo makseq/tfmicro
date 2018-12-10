@@ -31,8 +31,8 @@ class Predictor(Loader):
     def prepare(self):
         """ Override this function in your own predictor class if need """
 
-        inp = self.config['predict.input'] if 'predict.input' in self.config else "X:0"
-        out = self.config['predict.output'] if 'predict.output' in self.config else "output:0"
+        inp = self.config.get('predict.input', 'X:0')
+        out = self.config.get('predict.output', 'output:0')
 
         self.input = self.graph.get_tensor_by_name(inp)  # set input placeholder
         self.output = self.graph.get_tensor_by_name(out)  # set output operation
@@ -79,7 +79,7 @@ class Predictor(Loader):
         self.sess = sess
 
     @classmethod
-    def load(cls, path, forced_config=None):
+    def load(cls, path, forced_config=None, **kwargs):
         predictor = super(Predictor, cls).load(path, forced_config)
 
         predictor.graph = tf.get_default_graph()
