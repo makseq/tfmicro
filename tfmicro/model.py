@@ -212,6 +212,10 @@ class Model(Loader):
     def fit_data(self, data, callbacks=None, max_queue_size=100, thread_num=4, valid_thread_num=4,
                  tensorboard_subdir=''):
         c = self.c
+        # check deprecated function
+        self.check_deprecated(c)
+
+
         self.set_data(data)
         self.epochs = c['model.epochs']
         self.callbacks = [] if callbacks is None else callbacks
