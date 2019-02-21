@@ -24,4 +24,10 @@ import model_predictor
 import threadgen
 import workers
 
-# __version__ = '0.1'
+from .version import get_git_version, get_short_version
+
+__author__ = 'Max Tkachenko'
+__email__ = 'makseq@gmail.com'
+__version__ = get_short_version()
+__git_version__ = get_git_version()
+__description__ = 'Framework for Tensorflow models'
