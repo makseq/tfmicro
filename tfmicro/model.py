@@ -245,7 +245,7 @@ class Model(Loader):
 
             # load weights if we want to continue training
             if 'model.preload' in c and c['model.preload']:
-                self.load_weights(c['model.preload'])
+                self.load_weights(c['model.preload'], c.get('model.preload.verbose', False))
 
             # summary
             self.cost_summary = tf.summary.scalar("cost", self.cost)
@@ -410,6 +410,20 @@ class Model(Loader):
         saver.restore(self.sess, path + model_name)
         print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name, '\n'
         return
+
+    @staticmethod
+    def get_parameter_number(scope):
+        """ Get variable parameters number from scope
+        """
+        total_parameters = 0
+        for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope):
+            # shape is an array of tf.Dimension
+            shape = variable.get_shape()
+            variable_parameters = 1
+            for dim in shape:
+                variable_parameters *= dim.value
+            total_parameters += variable_parameters
+        return total_parameters
 
     def summary_image(self, image, name):
         """ Attach a image of a Tensor (for TensorBoard visualization)
