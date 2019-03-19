@@ -79,8 +79,8 @@ class Predictor(Loader):
         self.sess = sess
 
     @classmethod
-    def load(cls, path, forced_config=None, **kwargs):
-        predictor = super(Predictor, cls).load(path, forced_config)
+    def load(cls, path, **kwargs):
+        predictor = super(Predictor, cls).load(path, **kwargs)
 
         predictor.graph = tf.get_default_graph()
         predictor.prepare()
