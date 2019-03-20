@@ -120,6 +120,8 @@ class Loader(object):
             # load config from file
             if os.path.isdir(path):  # path is dir
                 c = json.load(open(path + '/config.json'))
+            elif path.endswith('.json'):
+                c = json.load(path)
             else:  # path is filename
                 c = json.load(open(os.path.dirname(path) + '/config.json'))
 
