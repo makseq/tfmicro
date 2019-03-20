@@ -16,8 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-#import threading
-import multiprocessing as threading
+import threading
 import time
 
 
@@ -102,11 +101,8 @@ class ThreadedGenerator(object):
         self.stop_threads = False
 
         if self.thread_num > 0:
-            self.threads = [threading.Process(target=self.task) for _ in range(self.thread_num)]
-            p = threading.Process()
-            # [t.setDaemon(True) for t in self.threads]  # correct exit if main thread is closed
-            for t in self.threads:
-                t.daemon = True
+            self.threads = [threading.Thread(target=self.task) for _ in range(self.thread_num)]
+            [t.setDaemon(True) for t in self.threads]  # correct exit if main thread is closed
             [t.start() for t in self.threads]
 
         return self
@@ -151,14 +147,14 @@ class ThreadedGenerator(object):
                 if self.stop_threads:
                     return
 
-            # if self.thread_num > 0:
-            #     self.lock.acquire(True)
+            if self.thread_num > 0:
+                self.lock.acquire(True)
 
             self.q[i] = values  # push
             self.debug('put', len(self.q), i)
 
-            # if self.thread_num > 0:
-            #   self.lock.release()
+            if self.thread_num > 0:
+                self.lock.release()
 
             if self.stop_threads:
                 return
