@@ -232,7 +232,9 @@ class Model(Loader):
 
         # session init & tf_debug
         use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
-        self.sess = tf.Session(target=c.get('tf.session.target'), config=tf.ConfigProto(device_count={'GPU': use_gpu}))
+        if c.get('tf.session.target', ''):
+            print 'model tf session target:', c.get('tf.session.target', '')
+        self.sess = tf.Session(target=c.get('tf.session.target', ''), config=tf.ConfigProto(device_count={'GPU': use_gpu}))
         if self.c.get('tf.debug.enabled', False):
             port = self.c.get('tf.debug.port', '6064')
             self.sess = tf_debug.TensorBoardDebugWrapperSession(self.sess, 'localhost:'+port)
