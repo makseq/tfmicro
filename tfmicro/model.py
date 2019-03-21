@@ -15,6 +15,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
+
 import json
 import os
 import gc
@@ -215,7 +217,6 @@ class Model(Loader):
         # check deprecated function
         self.check_deprecated(c)
 
-
         self.set_data(data)
         self.epochs = c['model.epochs']
         self.callbacks = [] if callbacks is None else callbacks
@@ -225,7 +226,7 @@ class Model(Loader):
         self.keyboard.start()
 
         # prepare train model
-        print ' Compiling model'
+        print(' Compiling model')
         tf.reset_default_graph()
         tf.set_random_seed(1234)
         self._train_model(data)
@@ -233,7 +234,7 @@ class Model(Loader):
         # session init & tf_debug
         use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
         if c.get('tf.session.target', ''):
-            print 'model tf session target:', c.get('tf.session.target', '')
+            print('model tf session target:', c.get('tf.session.target', ''))
         self.sess = tf.Session(target=c.get('tf.session.target', ''), config=tf.ConfigProto(device_count={'GPU': use_gpu}))
         if self.c.get('tf.debug.enabled', False):
             port = self.c.get('tf.debug.port', '6064')
@@ -263,7 +264,7 @@ class Model(Loader):
             [call.set_model(self) for call in self.callbacks]  # set model to self.callbacks
             [call.set_config(c) for call in self.callbacks]  # set config to self.callbacks
             [call.on_start() for call in self.callbacks]  # self.callbacks
-            print ' Train model'
+            print(' Train model')
 
             while self.epoch <= self.epochs:  # train cycle, we start from 1, so use <=
                 ' epoch begin '
@@ -392,29 +393,29 @@ class Model(Loader):
         # print intersection
         if verbose:
             if 'model.preload.exclude_var_names' in self.c:
-                print '\nExcluded variables:'
-                print self.c['model.preload.exclude_var_names']
+                print('\nExcluded variables:')
+                print(self.c['model.preload.exclude_var_names'])
 
-            print '\nVariables from current model - exclude_var_names (from config):'
+            print('\nVariables from current model - exclude_var_names (from config):')
             for i in sorted([v.name for v in current_vars]):
-                print ' ', i
+                print(' ', i)
 
-            print '\nVariables from loading model:'
+            print('\nVariables from loading model:')
             for key in loading_names:
-                print ' ', key
+                print(' ', key)
 
-            print '\nIntersect variables:'
+            print('\nIntersect variables:')
             for v in intersect_vars:
-                print ' ', v.name
+                print(' ', v.name)
 
-            print '\nIgnored variables:'
+            print('\nIgnored variables:')
             for n in ignored_names:
-                print ' ', n
-            print
-
+                print(' ', n)
+            print()
         saver = tf.train.Saver(var_list=intersect_vars)
         saver.restore(self.sess, path + model_name)
-        print ' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name, '\n'
+        print(' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name,
+              '\n')
         return
 
     @staticmethod
@@ -462,16 +463,16 @@ class Model(Loader):
 
     def check_deprecated(self, config):
         if 'use_gpu' in config:
-            print "\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead."
+            print("\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead.")
 
         if 'allow_growth' in config:
-            print "\n! warning: 'allow_growth' in config is deprecated. " \
-                  "Use 'tf.config.gpu_options.allow_growth' instead."
+            print("\n! warning: 'allow_growth' in config is deprecated. "
+                  "Use 'tf.config.gpu_options.allow_growth' instead.")
 
         if hasattr(self, 'variable_image'):
-            print "\n! warning: you use 'variable_image' in your model, " \
-                  "but tfmicro has built-in method 'tfmicro.Model.summary_image'"
+            print("\n! warning: you use 'variable_image' in your model, "
+                  "but tfmicro has built-in method 'tfmicro.Model.summary_image'")
 
         if hasattr(self, 'variable_summaries'):
-            print "\n! warning: you use 'variable_summaries' in your model, " \
-                  "but tfmicro has built-in method 'tfmicro.Model.summary_tensor'"
+            print("\n! warning: you use 'variable_summaries' in your model, "
+                  "but tfmicro has built-in method 'tfmicro.Model.summary_tensor'")

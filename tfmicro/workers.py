@@ -15,19 +15,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
 
 import os
 import time
 import multiprocessing
-import threading
-import Queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 
 class Workers:
     def __init__(self, c, mode, data):
         # check openblas threads to prevent threads hell while using multiprocessing
         if 'OPENBLAS_NUM_THREADS' not in os.environ or int(os.environ['OPENBLAS_NUM_THREADS']) != 1:
-            print '! tfmicro.workers error: Set OPENBLAS_NUM_THREADS=1 before import numpy or numpy depending modules'
+            print('! tfmicro.workers error: Set OPENBLAS_NUM_THREADS=1 before import numpy or numpy depending modules')
             exit(-1)
 
         self.c = c
@@ -44,8 +47,8 @@ class Workers:
     def debug(self, *args):
         if self.verbose > 0:
             for a in args:
-                print a,
-            print
+                print(a, end=' ')
+            print()
 
     @staticmethod
     def clear_queue(queue):
@@ -64,7 +67,7 @@ class Workers:
 
         n_processes = self.c['data.n_proc']
         args = self.queue_in, self.queue_out
-        jobs = [multiprocessing.Process(target=self.task, args=args) for _ in xrange(n_processes)]
+        jobs = [multiprocessing.Process(target=self.task, args=args) for _ in range(n_processes)]
         for j in jobs:
             j.daemon = True
         [j.start() for j in jobs]
@@ -123,12 +126,12 @@ class Workers:
 
     def get(self):
         result = self.queue_out.get()
-        self.debug(' <<< queue_out size', self.queue_out.qsize())
+        self.debug(self.mode, ' <<< queue_out size', self.queue_out.qsize())
         return result
 
     def put(self, w):
         self.queue_in.put(w)
-        self.debug('\n >>> new queue_in size', self.queue_in.qsize(), '\n')
+        self.debug(self.mode, '\n >>> new queue_in size', self.queue_in.qsize(), '\n')
 
     def get_loading(self):
         return self.queue_out.qsize()
