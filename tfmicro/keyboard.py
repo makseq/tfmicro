@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
 
 import sys
 import time
@@ -24,7 +25,7 @@ try:
     no_keyboard = False
 except Exception as e:
     no_keyboard = True
-    print '! warning: keyboard callbacks is not supported:', e
+    print('! warning: keyboard callbacks is not supported:', e)
 
 import threading
 
@@ -34,7 +35,7 @@ pressed = []
 started = False
 
 
-class Exiter():
+class Exiter:
     def __init__(self):
         self.stop = False
         self.forward()
@@ -115,10 +116,11 @@ def start():
 if __name__ == '__main__':
 
     def my_func():
-        print 'Quit!'
+        print('Quit!')
+
 
     def my_func2():
-        print 'Try!'
+        print('Try!')
         return False
 
     start()
@@ -126,6 +128,6 @@ if __name__ == '__main__':
     listen_key('t', my_func2)
 
     while True:
-        print 'step'
+        print('step')
         time.sleep(5)
 

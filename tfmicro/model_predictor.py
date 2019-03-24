@@ -15,10 +15,187 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import numpy as np
-import tensorflow as tf
+from __future__ import print_function
 
-from model_loader import Loader
+import json
+import numpy as np
+import os
+import tensorflow as tf
+from tensorflow.core.framework import graph_pb2
+from tensorflow.python.tools import freeze_graph
+
+try:
+    unicode('test')
+except:
+    unicode = str
+
+
+def make_config_proto(c):
+    """ Read ConfigProto params from json. For example, put into c['tf.config.use_gpu'] = 1
+    or c['tf.config.allow_growth'] = true, etc.
+
+    :param c: json config
+    :return: tf.ConfigProto
+    """
+    # tensorflow config
+    use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
+    cfg = tf.ConfigProto(device_count={'GPU': use_gpu})
+
+    # scan config for tf config params
+    opts = {opt.replace('tf.config.', ''): c[opt] for opt in c if opt.startswith('tf.config.')}
+    if 'use_gpu' in opts:
+        del opts['use_gpu']  # it's not standard {key: value} parameter
+
+    # apply params to config proto
+    for key, value in opts.items():
+        if '.' in key:  # go deeper
+            split = key.split('.')
+            if len(split) > 2:
+                raise Exception('Only two level config supported: ' + split)
+
+            key1, key2 = split[0], split[1]
+            root_obj = getattr(cfg, key1)
+            setattr(root_obj, key2, value)
+        else:
+            setattr(cfg, key, value)
+
+    return cfg
+
+
+class LoaderException(Exception):
+    pass
+
+
+class Loader(object):
+
+    @staticmethod
+    def check_deprecated(config):
+        if 'use_gpu' in config:
+            print("\n! warning: 'use_gpu' in config is deprecated. Use 'tf.config.use_gpu' instead.")
+
+        if 'allow_growth' in config:
+            print("\n! warning: 'allow_growth' in config is deprecated. "
+                  "Use 'tf.config.gpu_options.allow_growth' instead.")
+
+    @staticmethod
+    def load_frozen_graph(frozen_path):
+        """ Load frozen model
+
+        :param frozen_path: path to frozen graph file
+        """
+        # read frozen graph
+        graph_def = graph_pb2.GraphDef()
+        with open(frozen_path, 'rb') as f:
+            graph_def.ParseFromString(f.read())
+
+        # import graph def
+        tf.import_graph_def(graph_def, name='')
+        print('Frozen model loaded:', frozen_path)
+
+    @staticmethod
+    def load_meta_graph(model, meta_graph, checkpoint):
+        """ Load meta graph and weights as standard tensorflow model
+
+        :param model: model class
+        :param meta_graph: meta graph path
+        :param checkpoint: checkpoint class
+        """
+        try:
+            # import meta graph as usual
+            model.saver = tf.train.import_meta_graph(meta_graph, clear_devices=True)
+            print('Graph loaded:', meta_graph)
+        except Exception as e:
+            if not os.path.exists(meta_graph):
+                print("No graph loaded! Path doesn't exist:", meta_graph)
+            else:
+                print('No graph loaded! Some errors occur:', meta_graph)
+                print(e.__repr__())
+            model.saver = tf.train.Saver()
+
+        # load weights
+        model.saver.restore(model.sess, checkpoint)
+        print('Variables loaded:', checkpoint)
+
+    @classmethod
+    def load(cls, path, forced_config=None, print_vars=False, frozen_graph=True,
+             tf_session_target='', tf_device=''):
+        """ Main model loading function
+
+        :param path: path to tensorflow model root
+        :param forced_config: dict as config
+        :param print_vars: print debug info about loaded variables
+        :param frozen_graph: freeze model graph and load it as frozen (best performance and memory consumption)
+        :param tf_session_target for tf server
+        :param tf_device cuda device to use
+        :return: cls
+        """
+        # prepare config
+        if forced_config is not None:
+            c = forced_config
+            model_dir = path
+        else:
+            # load config from file
+            if os.path.isdir(path):  # path is dir
+                c = json.load(open(path + '/config.json'))
+                model_dir = path
+
+            # path is json file
+            elif path.endswith('.json'):
+                c = json.load(open(path))
+                model_dir = os.path.dirname(path)
+
+            # path is some filename
+            else:
+                c = json.load(open(os.path.dirname(path) + '/config.json'))
+                model_dir = os.path.dirname(path)
+
+        # get model filename
+        checkpoint = tf.train.latest_checkpoint(model_dir)
+        meta_graph = checkpoint + '.meta'
+
+        # reset
+        tf.set_random_seed(1234)
+        tf.reset_default_graph()
+
+        # model setting up
+        model = cls(c)
+        model.c = c
+        config_proto = make_config_proto(c)  # prepare proto config for tensorflow
+
+        target = tf_session_target if tf_session_target else c.get('tf.session.target', '')
+        device = tf_device if tf_device else c.get('tf.device', '')
+        if target or device:
+            print('Model Loader: tf session target:', target, 'and device:', device)
+
+        # frozen graph loading
+        if frozen_graph:
+            frozen_path = os.path.join(model_dir, 'frozen_graph.pb')
+
+            # convert graph to frozen if no file
+            if not os.path.exists(frozen_path):
+                freeze_graph.freeze_graph(None, None, True, checkpoint, c['predict.output'].split(':')[0],
+                                          None, None, frozen_path, True, None, input_meta_graph=meta_graph)
+                print('Frozen model converted and saved:', frozen_path)
+
+            # load frozen model
+            tf.reset_default_graph()
+            with tf.device(device):
+                cls.load_frozen_graph(frozen_path)
+            model.sess = tf.Session(target=target, config=config_proto)
+            # FIXME: tensorflow bug: intra_op_parallelism_threads doesn't affects system right after freeze_graph()
+
+        # regular tensorflow model loading
+        else:
+            model.sess = tf.Session(target=target, config=config_proto)
+            with tf.device(device):
+                cls.load_meta_graph(model, meta_graph, checkpoint)
+
+        # print variables from loaded model
+        if print_vars:
+            [print(i) for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]
+
+        cls.check_deprecated(c)
+        return model
 
 
 # noinspection PyAttributeOutsideInit
@@ -34,18 +211,33 @@ class Predictor(Loader):
         inp = self.config.get('predict.input', 'X:0')
         out = self.config.get('predict.output', 'output:0')
 
-        self.input = self.graph.get_tensor_by_name(inp)  # set input placeholder
-        self.output = self.graph.get_tensor_by_name(out)  # set output operation
+        # set input placeholder
+        self.input = self.graph.get_tensor_by_name(inp)
+
+        # set output operation
+        if isinstance(out, str) or isinstance(out, unicode):
+            self.output = {out: self.graph.get_tensor_by_name(out)}
+            self.output_alone = True
+        elif isinstance(out, list):
+            self.output = {o: self.graph.get_tensor_by_name(o) for o in out}
+            self.output_alone = False
+        else:
+            raise LoaderException('incorrect predict.output type')
 
     def predict(self, feats):
-        result = self.sess.run(self.output, feed_dict={
+        results = self.sess.run(self.output.values(), feed_dict={
             self.input: feats
         })
-        return result
+        self.full_results = {key: results[i] for i, key in enumerate(self.output.keys())}
+
+        if self.output_alone:
+            return results[0]
+        else:
+            return self.full_results
 
     def split_predict(self, feats, batch_size, feature_steps, zero):
-        """ Split features x into parts with equal size and feed it into predict  
-            
+        """ Split features x into parts with equal size and feed it into predict
+
         :param feats: features
         :return: averaged vectors from splitted dvectors
         """
@@ -79,8 +271,8 @@ class Predictor(Loader):
         self.sess = sess
 
     @classmethod
-    def load(cls, path, **kwargs):
-        predictor = super(Predictor, cls).load(path, **kwargs)
+    def load(cls, path, forced_config=None, *args, **kwargs):
+        predictor = super(Predictor, cls).load(path, forced_config, *args, **kwargs)
 
         predictor.graph = tf.get_default_graph()
         predictor.prepare()

@@ -29,8 +29,7 @@ from tensorflow.python import pywrap_tensorflow
 
 import threadgen
 import keyboard
-from model_loader import Loader
-from model_predictor import Predictor
+from model_predictor import Loader, Predictor, make_config_proto
 
 
 # noinspection PyAttributeOutsideInit
@@ -226,16 +225,17 @@ class Model(Loader):
         self.keyboard.start()
 
         # prepare train model
-        print(' Compiling model')
-        tf.reset_default_graph()
-        tf.set_random_seed(1234)
-        self._train_model(data)
+        device = c.get('model.tf.device', '')
+        with tf.device(device):
+            print(' Compiling model' + (' for device ' + device) if device else '')
+            tf.reset_default_graph()
+            tf.set_random_seed(1234)
+            self._train_model(data)
 
         # session init & tf_debug
-        use_gpu = os.environ.get('use_gpu', c.get('tf.config.use_gpu', c.get('use_gpu', 1)))
         if c.get('tf.session.target', ''):
             print('model tf session target:', c.get('tf.session.target', ''))
-        self.sess = tf.Session(target=c.get('tf.session.target', ''), config=tf.ConfigProto(device_count={'GPU': use_gpu}))
+        self.sess = tf.Session(target=c.get('tf.session.target', ''), config=make_config_proto(c))
         if self.c.get('tf.debug.enabled', False):
             port = self.c.get('tf.debug.port', '6064')
             self.sess = tf_debug.TensorBoardDebugWrapperSession(self.sess, 'localhost:'+port)

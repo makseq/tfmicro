@@ -21,9 +21,9 @@ import os
 import time
 import multiprocessing
 try:
-    import queue
+    import Queue
 except ImportError:
-    import Queue as queue
+    import queue as Queue
 
 
 class Workers:

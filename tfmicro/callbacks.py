@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
 
 import sys
 import traceback
@@ -110,7 +111,7 @@ class KeyboardStop(Callback):
         def on_resume():
             global stop_training, stop_training_now
             if stop_training_now:
-                print "\n -> Sorry, can't resume train, double 'q' pressed"
+                print("\n -> Sorry, can't resume train, double 'q' pressed")
             else:
                 stop_training = False
                 self.model.info('\n  -> Training will resume! \n\n')
@@ -121,7 +122,7 @@ class KeyboardStop(Callback):
         keyboard.listen_key('Q', on_resume)
         keyboard.start()
 
-        print "! note: press 'q' to stop training; 'Q' to resume; twice 'q' to stop after step"
+        print("! note: press 'q' to stop training; 'Q' to resume; twice 'q' to stop after step")
         super(Callback, self).__init__()
 
     def on_step_end(self):
@@ -167,7 +168,7 @@ class KeyboardValidation(Callback):
         keyboard.listen_key('v', validation)
         keyboard.start()
 
-        print "! note: press 'v' to run validation"
+        print("! note: press 'v' to run validation")
         super(Callback, self).__init__()
 
     def on_step_end(self):
@@ -198,7 +199,7 @@ class KeyboardLearningRate(Callback):
         keyboard.listen_key('=', increase_lr)
         keyboard.start()
 
-        print "! note: press '+/=' to increase learning rate, '-' to decrease"
+        print("! note: press '+/=' to increase learning rate, '-' to decrease")
         super(Callback, self).__init__()
 
 
@@ -230,7 +231,7 @@ class ReducingLearningRate(Callback):
         """Resets wait counter and cooldown counter.
         """
         if self.mode not in ['min', 'max']:
-            print 'Learning Rate mode %s is unknown, use min or max.' % self.mode
+            print('Learning Rate mode %s is unknown, use min or max.' % self.mode)
             raise ValueError('Incorrect mode in ReducingLearningRate')
 
         if self.mode == 'min':
@@ -312,9 +313,9 @@ class AccuracyCallback(Callback):
     def on_start(self):
         self.model.history['accuracy'] = []
         if not hasattr(self.model, 'labels'):
-            print '! warning: model must have model.labels for AccuracyCallback'
+            print('! warning: model must have model.labels for AccuracyCallback')
         if not hasattr(self.model, 'logits'):
-            print '! warning: model must have model.logits for AccuracyCallback'
+            print('! warning: model must have model.logits for AccuracyCallback')
 
     def on_epoch_begin(self):
         self.logits = []
@@ -340,13 +341,14 @@ class AccuracyCallback(Callback):
 
 # False Alarm & False Reject (FAFR) callback
 class FafrCallback(Callback):
-    def __init__(self, do_l2_norm=True, n_proc=None):
+    def __init__(self, do_l2_norm=True, n_proc=None, embeddings_name='embeddings'):
         self.embeddings = None
         self.labels = None
         self.do_l2_norm = do_l2_norm
         self.n_proc = n_proc
         self.metric = None
         self.neg = self.pos = None
+        self.embeddings_name = embeddings_name
 
         # testarium functions import on the fly
         t = __import__('testarium')
@@ -369,16 +371,16 @@ class FafrCallback(Callback):
         self.n_proc = self.config.get('data.n_proc', 8) if self.n_proc is None else self.n_proc
 
         if not hasattr(self.model, 'labels'):
-            print '! warning: model must have model.labels for FafrCallback'
+            print('! warning: model must have model.labels for FafrCallback')
         if not hasattr(self.model, 'embeddings'):
-            print '! warning: model must have model.embeddings for FafrCallback'
+            print('! warning: model must have model.embeddings for FafrCallback')
 
     def on_epoch_begin(self):
         self.embeddings = []
         self.labels = []
 
     def on_validation_step_end(self):
-        self.embeddings.append(self.model.embeddings)
+        self.embeddings.append(getattr(self.model, self.embeddings_name))
         self.labels.append(self.model.labels)
 
     def on_epoch_end(self):

@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import callbacks
 import data
 import model
-import model_loader
 import model_predictor
 import threadgen
 import workers

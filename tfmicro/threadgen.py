@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+from __future__ import print_function
 import threading
 import time
 
@@ -110,8 +110,8 @@ class ThreadedGenerator(object):
     def debug(self, *args):
         if self.verbose > 0:
             for a in args:
-                print a,
-            print
+                print(a,)
+            print()
 
     def stop(self):
         self.stop_threads = True
