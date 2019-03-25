@@ -66,19 +66,21 @@ class Workers:
         self.state = 'progress'
 
         n_processes = self.c['data.n_proc']
-        args = self.queue_in, self.queue_out
-        jobs = [multiprocessing.Process(target=self.task, args=args) for _ in range(n_processes)]
+        jobs = [multiprocessing.Process(target=self.task, args=(self.queue_in, self.queue_out, id_))
+                for id_ in range(n_processes)]
         for j in jobs:
             j.daemon = True
         [j.start() for j in jobs]
         self.jobs = jobs
 
-    def task(self, q_in, q_out):
-        # check if 'mode' argument in evaluate_batch_prepare implementation
+    def task(self, q_in, q_out, proc_id):
+        # check if 'mode' & 'proc_id' arguments in evaluate_batch_prepare implementation
+        kwargs = {}
         if 'mode' in self.data.evaluate_batch_prepare.__code__.co_varnames:
-            prepared = self.data.evaluate_batch_prepare(mode=self.mode)
-        else:
-            prepared = self.data.evaluate_batch_prepare()
+            kwargs.update({'mode': self.mode})
+        if 'proc_id' in self.data.evaluate_batch_prepare.__code__.co_varnames:
+            kwargs.update({'proc_id': proc_id})
+        prepared = self.data.evaluate_batch_prepare(**kwargs)
 
         while True:
             # read
