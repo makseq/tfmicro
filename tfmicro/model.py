@@ -328,8 +328,8 @@ class Model(Loader):
         json.dump(self.c, open(dir_path + '/config.json', 'w'), indent=4)
 
     @classmethod
-    def load(cls, path, forced_config=None):
-        model = super(Model, cls).load(path, forced_config)
+    def load(cls, path, forced_config=None, *args, **kwargs):
+        model = super(Model, cls).load(path, forced_config, *args, **kwargs)
         model._reset_history()
         return model
 

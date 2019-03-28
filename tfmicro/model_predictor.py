@@ -264,6 +264,7 @@ class Predictor(Loader):
 
         # mean all dvector parts
         d_parts = np.vstack(d_parts)
+        self.d_parts = d_parts
         dvector = np.mean(d_parts, axis=0)
         return dvector
 
