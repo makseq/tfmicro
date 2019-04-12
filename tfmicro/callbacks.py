@@ -317,7 +317,7 @@ class AccuracyCallback(Callback):
         if not hasattr(self.model, 'logits'):
             print('! warning: model must have model.logits for AccuracyCallback')
 
-    def on_epoch_begin(self):
+    def on_validation_begin(self):
         self.logits = []
         self.labels = []
 
@@ -325,7 +325,7 @@ class AccuracyCallback(Callback):
         self.logits.append(self.model.logits)
         self.labels.append(self.model.labels)
 
-    def on_epoch_end(self):
+    def on_validation_end(self):
         predicted_labels = np.argmax(np.vstack(self.logits), axis=1)
         labels = np.hstack(self.labels)
         acc = np.mean(np.equal(predicted_labels, labels))
@@ -378,7 +378,7 @@ class FafrCallback(Callback):
         if not hasattr(self.model, 'embeddings'):
             print('! warning: model must have model.embeddings for FafrCallback')
 
-    def on_epoch_begin(self):
+    def on_validation_begin(self):
         self.embeddings = []
         self.labels = []
 
@@ -386,7 +386,7 @@ class FafrCallback(Callback):
         self.embeddings.append(getattr(self.model, self.embeddings_name))
         self.labels.append(self.model.labels)
 
-    def on_epoch_end(self):
+    def on_validation_end(self):
         embeddings = np.vstack(self.embeddings)
         labels = np.hstack(self.labels)
 
