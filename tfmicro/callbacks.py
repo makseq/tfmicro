@@ -341,7 +341,7 @@ class AccuracyCallback(Callback):
 
 # False Alarm & False Reject (FAFR) callback
 class FafrCallback(Callback):
-    def __init__(self, do_l2_norm=True, n_proc=None, embeddings_name='embeddings'):
+    def __init__(self, do_l2_norm=True, n_proc=None, embeddings_name='embeddings', postfix=''):
         self.embeddings = None
         self.labels = None
         self.do_l2_norm = do_l2_norm
@@ -349,11 +349,14 @@ class FafrCallback(Callback):
         self.metric = None
         self.neg = self.pos = None
         self.embeddings_name = embeddings_name
+        self.postfix = postfix
 
         # testarium functions import on the fly
         t = __import__('testarium')
         self.fafr_parallel = t.score.fafr.fafr_parallel
         self.get_pos_neg = t.score.fafr.get_pos_neg
+
+        self.FA = self.FR = self.Thr = self.eer_thr = self.eer = self.minDCF = None
 
         # check
         if do_l2_norm and self.metric == 'hamming':
@@ -362,9 +365,9 @@ class FafrCallback(Callback):
         super(Callback, self).__init__()
 
     def on_start(self):
-        self.model.history['thr'] = []
-        self.model.history['eer'] = []
-        self.model.history['minDCF'] = []
+        self.model.history['thr' + self.postfix] = []
+        self.model.history['eer' + self.postfix] = []
+        self.model.history['minDCF' + self.postfix] = []
 
         # read config because it available
         self.metric = self.config.get('model.fafr.metric', 'cos')
@@ -402,11 +405,11 @@ class FafrCallback(Callback):
         self.FA, self.FR, self.Thr, self.eer_thr, self.eer, self.minDCF = FA, FR, Thr, thr, eer, minDCF
         self.model.info('\n   > EER: %0.3f > minDCF: %0.3f > threshold: %0.2f\n  ' % (eer * 100, minDCF, thr), False)
 
-        self.model.history['eer'] += [eer]
-        self.model.history['minDCF'] += [minDCF]
-        self.model.history['thr'] += [thr]
+        self.model.history['eer' + self.postfix] += [eer]
+        self.model.history['minDCF' + self.postfix] += [minDCF]
+        self.model.history['thr' + self.postfix] += [thr]
 
-        value = summary_pb2.Summary.Value(tag="eer", simple_value=eer)
+        value = summary_pb2.Summary.Value(tag='eer' + self.postfix, simple_value=eer)
         global_step = self.model.epoch*self.model.data.validation_steps + self.model.valid_step
         self.model.valid_writer.add_summary(summary_pb2.Summary(value=[value]), global_step=global_step)
         self.model.valid_writer.flush()
