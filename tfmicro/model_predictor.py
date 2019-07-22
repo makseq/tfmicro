@@ -84,8 +84,8 @@ class Loader(object):
         :param frozen_path: path to frozen graph file
         """
         # read frozen graph
-        graph_def = graph_pb2.GraphDef()
-        with open(frozen_path, 'rb') as f:
+        graph_def = tf.GraphDef()
+        with tf.gfile.GFile(frozen_path, 'rb') as f:
             graph_def.ParseFromString(f.read())
 
         # import graph def

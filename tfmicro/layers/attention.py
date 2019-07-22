@@ -24,7 +24,7 @@ import tensorflow as tf
 class AttentionWithContext(object):
 
     def __init__(self, shape, units, is_training, keep_prob=None, name='attention_context',
-                 use_rnn=True, swap_memory=False, verbose=False):
+                 use_rnn=True, swap_memory=False, verbose=False, alpha_2D=True):
         with tf.variable_scope(name):
             init = tf.glorot_uniform_initializer()
             self.shape = shape
@@ -46,8 +46,8 @@ class AttentionWithContext(object):
                 self.W = tf.Variable(initial_value=init([dim, units]), dtype=tf.float32, name='W')
                 self.Wb = tf.Variable(initial_value=init([units]), dtype=tf.float32, name='b')
 
-            self.U = tf.Variable(initial_value=init([units, dim]), dtype=tf.float32, name='U')
-            self.Ub = tf.Variable(initial_value=init([dim]), dtype=tf.float32, name='b')
+            self.U = tf.Variable(initial_value=init([units, dim if alpha_2D else 1]), dtype=tf.float32, name='U')
+            self.Ub = tf.Variable(initial_value=init([dim if alpha_2D else 1]), dtype=tf.float32, name='b')
             self.swap_memory = swap_memory
 
     def __call__(self, x):
