@@ -151,7 +151,7 @@ class Loader(object):
 
         # get model filename
         checkpoint = tf.train.latest_checkpoint(model_dir)
-        meta_graph = checkpoint + '.meta'
+        meta_graph = checkpoint + '.meta' if checkpoint is not None else 'no-checkpoint-found'
 
         # reset
         tf.set_random_seed(1234)
@@ -168,7 +168,7 @@ class Loader(object):
             print('Model Loader: tf session target:', target, 'and device:', device)
 
         # frozen graph loading
-        if frozen_graph:
+        if frozen_graph and not c.get('tf.skip_frozen_graph', False):
             frozen_path = os.path.join(model_dir, 'frozen_graph.pb')
 
             # convert graph to frozen if no file
@@ -193,6 +193,8 @@ class Loader(object):
         # print variables from loaded model
         if print_vars:
             [print(i) for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]
+            print('--- Operations ---')
+            [print(n.name) for n in tf.get_default_graph().as_graph_def().node]
 
         cls.check_deprecated(c)
         return model
@@ -225,7 +227,7 @@ class Predictor(Loader):
             raise LoaderException('incorrect predict.output type')
 
     def predict(self, feats):
-        results = self.sess.run(self.output.values(), feed_dict={
+        results = self.sess.run(list(self.output.values()), feed_dict={
             self.input: feats
         })
         self.full_results = {key: results[i] for i, key in enumerate(self.output.keys())}
