@@ -22,7 +22,8 @@ import traceback
 import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
-import keyboard
+
+from . import keyboard
 
 stop_training = False
 stop_training_now = False

@@ -18,7 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as np
 import multiprocessing
-import threadgen
+
+from . import threadgen
 
 
 # noinspection PyPep8Naming

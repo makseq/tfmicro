@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import callbacks
-import data
-import model
-import model_predictor
-import threadgen
-import workers
+from . import callbacks
+from . import data
+from . import model
+from . import model_predictor
+from . import threadgen
+from . import workers
 
 from .version import get_git_version, get_short_version
 

@@ -27,9 +27,9 @@ import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 from tensorflow.python import pywrap_tensorflow
 
-import threadgen
-import keyboard
-from model_predictor import Loader, Predictor, make_config_proto
+from . import threadgen
+from . import keyboard
+from .model_predictor import Loader, Predictor, make_config_proto
 
 
 # noinspection PyAttributeOutsideInit
