@@ -275,21 +275,15 @@ class Model(Loader):
                     [call.on_epoch_begin() for call in self.callbacks]  # self.callbacks
 
                 ' step begin '
-                print(self.epoch, 'sldkfjalsd')
                 [call.on_step_begin() for call in self.callbacks]
-                print(self.epoch, 'sldkfjalsd')
 
                 self.train_step()
-                print(self.epoch, 'sldkfjalsd')
                 self.train_writer.flush()  # write summary to disk right now
-                print(self.epoch, 'sldkfjalsd')
 
                 ' step end '
                 [call.on_step_end() for call in self.callbacks]
                 self.step += 1
-                print(self.epoch, 'sldkfjalsd')
                 self.progress(self.step)  # print progress
-                print(self.epoch, 'sldkfjalsd')
 
                 ' epoch end '
                 if self.step >= self.data.steps_per_epoch or self.stop_training_now:

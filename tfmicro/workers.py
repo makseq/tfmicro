@@ -20,11 +20,7 @@ from __future__ import print_function
 import os
 import time
 import multiprocessing
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
-
+import queue as Queue
 
 class Workers:
     def __init__(self, c, mode, data):
@@ -40,8 +36,9 @@ class Workers:
         self.maxsize = c['data.queue_size']
 
         self.state = ''
-        self.queue_in = multiprocessing.Manager().Queue()
-        self.queue_out = multiprocessing.Queue(maxsize=self.maxsize)
+        self.manager = multiprocessing.Manager()
+        self.queue_in = self.manager.Queue()
+        self.queue_out = self.manager.Queue(maxsize=self.maxsize)
         self.jobs = []
 
     def debug(self, *args):

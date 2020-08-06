@@ -86,7 +86,9 @@ class ThreadedGenerator(object):
     def __init__(self, data, mode, max_queue_size=1000, thread_num=4, debug=0):
         self.q = {}
         self.last_out = 0
-        self.lock = threading.Lock()
+        self.thread_num = thread_num
+        if self.thread_num > 0:
+            self.lock = threading.Lock()
         self.max_queue_size = max_queue_size
         self.stop_threads = False
         self.verbose = debug
@@ -95,7 +97,6 @@ class ThreadedGenerator(object):
         self.mode = mode
         self.generator = data.generator(mode)
         self.threads = None
-        self.thread_num = thread_num
 
     def start(self):
         self.stop_threads = False
