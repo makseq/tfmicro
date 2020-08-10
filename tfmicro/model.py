@@ -221,6 +221,8 @@ class Model(Loader):
         self.callbacks = [] if callbacks is None else callbacks
         self.train_generator = threadgen.ThreadedGenerator(data, 'train', max_queue_size, thread_num).start()
         self.valid_generator = threadgen.ThreadedGenerator(data, 'valid', max_queue_size, valid_thread_num).start()
+        if data.enroll_dir != '':
+            self.enroll_generator = threadgen.ThreadedGenerator(data, 'enroll', max_queue_size, valid_thread_num).start()
         self.keyboard = keyboard
         self.keyboard.start()
 
@@ -304,6 +306,8 @@ class Model(Loader):
 
             self.train_generator.stop()
             self.valid_generator.stop()
+            if data.enroll_data is not None:
+                self.enroll_generator.stop()
             [call.on_finish() for call in self.callbacks]  # self.callbacks
             gc.collect()
             return self
