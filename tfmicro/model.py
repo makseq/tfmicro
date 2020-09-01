@@ -25,11 +25,10 @@ import time
 import numpy as np
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
-from tensorflow.python import pywrap_tensorflow
 
 from . import threadgen
 from . import keyboard
-from .model_predictor import Loader, Predictor, make_config_proto
+from .model_predictor import Loader, make_config_proto
 
 
 # noinspection PyAttributeOutsideInit
@@ -100,6 +99,7 @@ class Model(Loader):
         self.valid_writer = None
         self._reset_history()
         self.tensorboard_root = './tensorboard/'
+        self.summaries = []
 
     def add_indicator(self, reference, text):
         self.indicators += [{'reference': reference, 'text': text}]
@@ -109,19 +109,19 @@ class Model(Loader):
         self.update_ops = []  # additional update params for graphs you need to call in session.run()
         self.learning_rate = c['model.optimizer.learning_rate']
 
-        self.epoch_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="epoch")
-        self.step_tf = tf.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="step")
-        self.training = tf.placeholder_with_default(tf.constant(0, dtype=tf.int64), shape=[], name="training")
+        self.epoch_tf = tf.compat.v1.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="epoch")
+        self.step_tf = tf.compat.v1.placeholder_with_default(tf.constant(-1, dtype=tf.int64), shape=[], name="step")
+        self.training = tf.compat.v1.placeholder_with_default(tf.constant(0, dtype=tf.int64), shape=[], name="training")
         self.is_training = tf.equal(self.training, 1)
-        self.learning_rate_tf = tf.placeholder_with_default(tf.constant(self.learning_rate, dtype=tf.float32), shape=[])
+        self.learning_rate_tf = tf.compat.v1.placeholder_with_default(tf.constant(self.learning_rate, dtype=tf.float32), shape=[])
 
     def _train_model(self, data):
         c = self.c
         self._train_basics()  # prepare basic placeholders
 
         batch_size = data.batch_size
-        self.X = tf.placeholder(tf.float32, shape=[batch_size, data.input_len,  data.input_dim], name="X")
-        self.Y = tf.placeholder(tf.float32, shape=[batch_size, data.output_len, data.output_dim], name="Y")
+        self.X = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, data.input_len,  data.input_dim], name="X")
+        self.Y = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, data.output_len, data.output_dim], name="Y")
 
         layer = self.X
 
@@ -129,7 +129,7 @@ class Model(Loader):
 
         # Output matmul
         units = c['model.units']
-        weights = tf.Variable(tf.truncated_normal([units, data.output_dim], stddev=0.5))
+        weights = tf.Variable(tf.compat.v1.truncated_normal([units, data.output_dim], stddev=0.5))
         bias = tf.Variable(tf.constant(0.1, shape=[data.output_dim]))
 
         shape = tf.shape(layer)
@@ -147,7 +147,7 @@ class Model(Loader):
             self.cost = tf.clip_by_value(diff, 1e-40, 1e10)
 
             # optimizer
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_tf).minimize(self.cost)
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate_tf).minimize(self.cost)
 
     def train_step(self):
         # get data
@@ -230,34 +230,34 @@ class Model(Loader):
         device = c.get('model.tf.device', '')
         with tf.device(device):
             print(' Compiling model' + (' for device ' + device) if device else '')
-            tf.reset_default_graph()
-            tf.set_random_seed(1234)
+            tf.compat.v1.reset_default_graph()
+            tf.compat.v1.set_random_seed(1234)
             self._train_model(data)
 
         # session init & tf_debug
         if c.get('tf.session.target', ''):
             print('model tf session target:', c.get('tf.session.target', ''))
-        self.sess = tf.Session(target=c.get('tf.session.target', ''), config=make_config_proto(c))
+        self.sess = tf.compat.v1.Session(target=c.get('tf.session.target', ''), config=make_config_proto(c))
         if self.c.get('tf.debug.enabled', False):
             port = self.c.get('tf.debug.port', '6064')
             self.sess = tf_debug.TensorBoardDebugWrapperSession(self.sess, 'localhost:'+port)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
 
         # log writer & model saver
         self.tensorboard_subdir = os.path.join(self.tensorboard_root, tensorboard_subdir)
-        with tf.summary.FileWriter(self.tensorboard_subdir + '/train') as self.train_writer, \
-             tf.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
+        with tf.compat.v1.summary.FileWriter(self.tensorboard_subdir + '/train') as self.train_writer, \
+             tf.compat.v1.summary.FileWriter(self.tensorboard_subdir + '/valid') as self.valid_writer:
 
             self.train_writer.add_graph(self.sess.graph)
             if self.saver is None:
-                self.saver = tf.train.Saver()
+                self.saver = tf.compat.v1.train.Saver()
 
             # load weights if we want to continue training
             if 'model.preload' in c and c['model.preload']:
                 self.load_weights(c['model.preload'], c.get('model.preload.verbose', False))
 
             # summary
-            self.cost_summary = tf.summary.scalar("cost", self.cost)
+            self.cost_summary = tf.compat.v1.summary.scalar("cost", self.cost)
 
             self._reset_history()
             self.epoch, self.step, train_cost, test_cost, restart = 1, 0, 0, 0, True
@@ -360,7 +360,7 @@ class Model(Loader):
             model_name = '/model-%i' % model_number
 
         # get variables from _train_model (current graph)
-        current_vars = current_vars_all = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        current_vars = current_vars_all = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
 
         # exclude variables using config exclude_var_names
         if 'model.preload.exclude_var_names' in self.c:
@@ -376,7 +376,7 @@ class Model(Loader):
             current_vars = new
 
         # get variable names from checkpoint
-        reader = pywrap_tensorflow.NewCheckpointReader(path + model_name)
+        reader = tf.compat.v1.train.NewCheckpointReader(path + model_name)
         loading_shapes = reader.get_variable_to_shape_map()
         loading_names = sorted(reader.get_variable_to_shape_map())
 
@@ -416,7 +416,7 @@ class Model(Loader):
             for n in ignored_names:
                 print(' ', n)
             print()
-        saver = tf.train.Saver(var_list=intersect_vars)
+        saver = tf.compat.v1.train.Saver(var_list=intersect_vars)
         saver.restore(self.sess, path + model_name)
         print(' ', str(len(intersect_vars)) + '/' + str(len(current_vars_all)), 'variables loaded', path + model_name,
               '\n')
@@ -427,7 +427,7 @@ class Model(Loader):
         """ Get variable parameters number from scope
         """
         total_parameters = 0
-        for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope):
+        for variable in tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=scope):
             # shape is an array of tf.Dimension
             shape = variable.get_shape()
             variable_parameters = 1
@@ -448,7 +448,7 @@ class Model(Loader):
         elif len(image.get_shape()) == 3:
             image = tf.expand_dims(image, -1)
 
-        self.summaries.append(tf.summary.image(name, image))
+        self.summaries.append(tf.compat.v1.summary.image(name, image))
 
     def summary_tensor(self, tensor, name):
         """ Attach mean, std, max, min, histogram of summaries to a Tensor for tensor (for TensorBoard visualization).
@@ -459,11 +459,11 @@ class Model(Loader):
         with tf.name_scope(name):
             mean = tf.reduce_mean(tensor)
             stddev = tf.sqrt(tf.reduce_mean(tf.square(tensor - mean)))
-            self.summaries.append(tf.summary.scalar('mean', mean))
-            self.summaries.append(tf.summary.scalar('stddev', stddev))
-            self.summaries.append(tf.summary.scalar('max', tf.reduce_max(tensor)))
-            self.summaries.append(tf.summary.scalar('min', tf.reduce_min(tensor)))
-            self.summaries.append(tf.summary.histogram('histogram', tensor))
+            self.summaries.append(tf.compat.v1.ssummary.scalar('mean', mean))
+            self.summaries.append(tf.compat.v1.ssummary.scalar('stddev', stddev))
+            self.summaries.append(tf.compat.v1.ssummary.scalar('max', tf.reduce_max(tensor)))
+            self.summaries.append(tf.compat.v1.ssummary.scalar('min', tf.reduce_min(tensor)))
+            self.summaries.append(tf.compat.v1.ssummary.histogram('histogram', tensor))
 
     def check_deprecated(self, config):
         if 'use_gpu' in config:
